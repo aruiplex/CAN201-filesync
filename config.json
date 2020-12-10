@@ -1,0 +1,13 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 20001
+  },
+  "db_file": "db.json",
+  "sync_interval": 2,
+  "buffer_size": 1024,
+  "compress_level": 6,
+  "encryption": false,
+  "ips": ["192.168.0.1", "192.168.0.2"],
+  "sync_dir": "./"
+}

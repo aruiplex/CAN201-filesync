@@ -1,0 +1,48 @@
+{
+  "device_id": "d786a000-2332-42bf-85a4-084caefff71d",
+  "sys_files": [
+    "./asysfs.py",
+    "./asysio.py",
+    "./asystp.py",
+    "./asys.py",
+    "./config.json",
+    "./db.json",
+    "./devTool.py",
+    "./main.py",
+    "./__pycache__"
+  ],
+  "ignore": [],
+  "sync_files": [
+    { "name": "./db.json", "time": 1606392718.0101535, "size": 301 },
+    {
+      "name": "./__pycache__\\asysio.cpython-38.pyc",
+      "time": 1606392123.2758672,
+      "size": 4317
+    },
+    { "name": "./asysfs.py", "time": 1606395348.566041, "size": 3780 },
+    { "name": "./aserver.py", "time": 1606391947.0887904, "size": 1894 },
+    { "name": "./asysio.py", "time": 1606371939.112213, "size": 7521 },
+    {
+      "name": "./__pycache__\\asystp.cpython-38.pyc",
+      "time": 1606394796.995714,
+      "size": 2364
+    },
+    { "name": "./config.json", "time": 1606392394.4658115, "size": 254 },
+    {
+      "name": "./__pycache__\\asys.cpython-38.pyc",
+      "time": 1606392123.2539363,
+      "size": 2208
+    },
+    {
+      "name": "./__pycache__\\asysfs.cpython-38.pyc",
+      "time": 1606392033.512794,
+      "size": 2458
+    },
+    {
+      "name": "./__pycache__\\syncFile.cpython-38.pyc",
+      "time": 1606391949.7948892,
+      "size": 129
+    },
+    { "name": "./asystp.py", "time": 1606394855.7457561, "size": 3275 }
+  ]
+}
