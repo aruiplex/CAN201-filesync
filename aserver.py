@@ -5,9 +5,7 @@ from asys import logger, cfg
 import struct
 import asysio
 import math
-import syncFile
 import os
-from syncFile import Sync_file
 
 syn = True
 peers = []
@@ -49,13 +47,12 @@ def receiver(connection: socket):
                 # know this peer is online
                 peers.add(connection)
             # if method == 1:
-                
+
             # if method == 2:
             # if method == 3:
             # if method == 4:
             # if method == 5:
             #     pass
-
 
             method, index, total, filename, data = asysio.unwarp(package)
             asysio.data2file(filename, index, data)

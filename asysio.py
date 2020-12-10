@@ -3,7 +3,8 @@ from asys import logger, cfg, db
 import gzip
 import struct
 import asysio
-
+from asysfs import SyncFile
+import enum
 
 """
 This file contains all functions related to the inputs outputs and stream operations
@@ -42,42 +43,40 @@ spliter(file: str, index: int) -> bytes
 |position at start | +   +    +   +
 |position at end   |                   +   +
 +------------------+--------------------------
+
+ATP: aruix transfer protocol
++------+--------------------------+----------------------------------------------------------------+
+| code |       method             |                     description                                |
++------+--------------------------+----------------------------------------------------------------+
+|  0?  |        ALI               |  send alive message to check peer get ready to perform action  |
+|  1   |        SYN               |  send sync message to identify which file to sync              |
+|  2   |        REQ               |  send request message to get messing file                      |
+|  3   |        SED               |  send send message to send a whole file                        |
+|  4   |        UPT               |  send update message to send a part of whole file              |
+|  5   |        DEL               |  send delete messafe to delete a file                          |
++------+--------------------------+----------------------------------------------------------------+
+
+ATP package header: 
+ 
+|--8Bytes-|
++----+----+------+----+
+|1234|5678|header|body|
++----+----+------+----+
+|    |
+|    +body_length
++header_length
+
+header fields:
+(* is must)
+1. *methods;
+2. filename;
+3. index;
+4. total;
+
 """
 
 
-# class asysio():
-#     def split(self, filename: str, index: int) -> bytes:
-#         with open(filename, "r") as file_:
-#             file_.seek()
-
-#     def data2file(self, filename: str, data: bytes):
-#         """byte stream to file
-#         1. low level.
-#         2. base on directory to create file
-#         """
-#         os.makedirs(os.path.dirname(filename), exist_ok=True)
-#         with open(filename, "w") as f:
-#             f.write(data)
-#         logger(f"write file in {filename}", "asysio")
-
-#     def file2data(self, filename) -> bytes:
-#         """byte file to stream
-#         1. low level.
-#         2. base on directory to read file
-#         """
-#         with open(file=filename, mode="rb") as data_file:
-#             logger(f"read {filename} into bytes", "asysio")
-#             return data_file.read()
-
-#     def compress(self, data: bytes) -> bytes:
-#         """compress for files and folders
-#         """
-#         return gzip.compress(data, cfg["compress_level"])
-
-#     def decompress(self, data: bytes) -> bytes:
-#         """decompress for files and folders
-#         """
-#         return gzip.decompress(data)
+Methods = enum.Enum("SYN", "DEL", "ALI", "UPT", "SED", "REQ")
 
 
 def spliter(filename: str, index: int) -> bytes:
@@ -85,134 +84,71 @@ def spliter(filename: str, index: int) -> bytes:
         file_.seek()
 
 
-"""
-ATP: aruix transfer protocol
-+------+--------------------------+----------------------------------------------------------------+
-| code |       method             |                     description                                |
-+------+--------------------------+----------------------------------------------------------------+
-|  0   |        ALIVE             |  send alive message to check peer get ready to perform action  |
-|  1   |        SYNC              |  send sync message to identify which file to sync              |
-|  2   |        REQUEST           |  send request message to get messing file                      |
-|  3   |        SEND              |  send send message to send a whole file                        |
-|  4   |        UPDATE            |  send update message to send a part of whole file              |
-|  5   |        DELETE            |  send delete messafe to delete a file                          |
-+------+--------------------------+----------------------------------------------------------------+
-
-ATP package header: 
-|----13 B--------|    
-+-+----+----+----+--------+----+
-|1|2345|6789|abcd|filename|data|
-+-+----+----+----+--------+----+
-| |    |    |filename_length
-| |    |total 
-| |index
-|method
-
-"""
-
-
-def unwarp(package):
-    """unwrap the package
+class Header():
+    """build the header for Package
     """
-    method, index, total, filename_len = struct.unpack(
-        "!BIII", package[:13])
-    filename = package[13:13+filename_len]
-    data = package[13+filename_len:]
-    return method, index, total, filename, data
+    method = b""
+
+    def __init__(self):
+        pass
+
+    def alive(self):
+        self.method = "ALI".encode()
+        return self
+
+    def send(self, index: int, total: int, filename: str):
+        self.method = "SED".encode()
+        return self
+
+    def sync(self):
+        self.method = "SYN".encode()
+        return self
+
+    def delete(self, sync_file_list: list):
+        """sync_file_list: List<SyncFile>
+        """
+        self.method = "DEL".encode()
+        return self
+
+    def request(self):
+        self.method = "REQ".encode()
+        return self
 
 
-class Wrapper():
+class Package():
+    """build a package
     """
-    """
-    #
-    method = 0
-    # total package number
-    total = 0
-    # filename of transfer data
-    filename = b""
+    header_length = 0
+    body_length = 0
+    header = b""
+    body = b""
 
-    def __init__(self, method: int, filename: str, total: int):
-        self.method = method
-        self.total = total
-        # self.size = size
-        self.filename = filename
-        # self.data = data.encode()
+    # def __init__(self, header: dict, body: str):
+    #     self.header = str(header).encode()
+    #     self.body = body.encode()
+    #     self.header_length = len(header)
+    #     self.body_length = len(body)
 
-    def wrap(self, index: bytes, data: bytes) -> bytes:
+    def wrap(self, header: dict, body: str) -> bytes:
         """wrap the package
         """
-        filename_len = len(self.filename)
-        header = struct.pack("!BIII", self.method, index,
-                             self.total, filename_len)
-        package = header + self.filename + data
-        return package
+        header = str(header)
+        self.header = header.encode()
+        self.body = body.encode()
+        self.header_length = len(header)
+        self.body_length = len(body)
+        return struct.pack("!II", self.header_length, self.body_length) + self.header + self.body
+        # return self.header_length.to_bytes(
+        #     4, "big") + self.body_length.to_bytes(4, "big") + self.header + self.body
 
-    @classmethod
-    def unwarp(cls, package):
+    def unwarp(self, package):
         """unwrap the package 
         """
-        self.method, index, self.total, filename_len = struct.unpack(
-            "!BIII", package[:13])
-        self.filename = package[13:13+filename_len]
-        data = package[13+filename_len:]
-        return data
+        self.header_length, self.body_length = struct.unpack(
+            "!II", package[:8])
+        self.header = package[8:8+self.header_length]
+        self.body = package[8+self.header_length:]
 
-
-def alive():
-    method = 0
-    return struct.pack("!B", method)
-
-# def desync():
-#     asys
-
-def sync(index: bytes, total: int, data: bytes):
-    method = 1
-    header = struct.pack("!BIII", method, index,
-                         total)
-    package = header + data
-    return package
-
-
-def request(filename: str):
-    method = 2
-    filename_len = len(filename)
-    header = struct.pack("!BI", method, filename_len)
-    package = header+filename
-    return package
-
-
-def send(filename, index, total, data):
-    method = 3
-    filename_len = len(filename)
-    header = struct.pack("!BIII", method, index,
-                         total, filename_len)
-    package = header + filename + data
-    return package
-
-
-def update(filename, index, total, data):
-    method = 4
-
-
-def delete(filename):
-    method = 5
-    filename_len = len(filename)
-    header = struct.pack("!BI", method, filename_len)
-    package = header + filename
-    return package
-
-
-def unwarp(package):
-    """unwrap the package 
-    """
-
-
-
-    method, index, total, filename_len = struct.unpack(
-        "!BIII", package[:13])
-    self.filename = package[13:13+filename_len]
-    data = package[13+filename_len:]
-    return data
 
 def data2file(filename: str, index, data: bytes):
     """byte stream to file
@@ -251,3 +187,19 @@ def decompress(data: bytes) -> bytes:
     """decompress for files and folders
     """
     return gzip.decompress(data)
+
+
+if __name__ == "__main__":
+    header_in = {
+        "filename": "helloworld.txt",
+        "index": 1,
+        "total": 10,
+        "size": 114514,
+        "time": 1414815
+    }
+    body_in = "hahahahahahaha"
+    a = Package()
+    package = a.wrap(header_in, body_in)
+    b = Package()
+    b.unwarp(package)
+    print(b.__dict__)

@@ -10,15 +10,31 @@ import os
 import time
 # import asystp
 
+"""
+sync_files() -> new_files, deleted_files, mod_files:
+通过遍历sync文件夹来找到new_files, deleted_files, mod_files, 返回的是str
+
+save_files_list(new_files: set, deleted_files: set, modified_files: set):
+通过sync_files()的返回值来持续化到db.json中
+
+check_files():
+整个filesystem的入口
+"""
+
 
 def sync_files() -> tuple:
     """
-    1. return new files and deleted files
+    return new files and deleted files
     """
     # sync directory
     sync_dir = cfg["sync_dir"]
+    # current exist files
     cur_files = set()
+    # past exist files
     ori_files = set()
+    # modified files
+    mod_files = set()
+    # ignored files
     ign_files = set(db["ignore"])
 
     for sync_recording in db["sync_files"]:
@@ -29,63 +45,41 @@ def sync_files() -> tuple:
             # add path at the start of filename
             cur_file = os.path.join(root, cur_file)
             cur_files.add(cur_file)
+
+    for cur_file in cur_files:
+        file_obj = SyncFile(cur_file)
+        for ori_file in db["sync_files"]:
+            if file_obj.name == ori_file["name"]:
+                if file_obj.size != ori_file["size"] or file_obj.time != ori_file["time"]:
+                    mod_files.add(file_obj.name)
+
     new_files = cur_files - ori_files - ign_files
     deleted_files = ori_files - cur_files
-    return new_files, deleted_files
-
-    # # sync directory
-    # sync_dir = cfg["sync_dir"]
-    # # current file list
-    # curr_sync_list = []
-    # # new file appended
-    # sync_files_append = []
-    # # old file list
-    # ex_files_list = []
-    # # old file list + system files
-    # ex_all_files_list = []
-    # # add all system file
-    # ex_all_files_list.extend((db["sys_files"]))
-    # # add all db.json old file to list
-    # for sync_recording in db["sync_files"]:
-    #     ex_files_list.append(sync_recording["name"])
-
-    # ex_all_files_list.extend(ex_files_list)
-    # # regex Matching
-    # # ex_files_tuple = tuple(ex_all_files_list)
-
-    # for root, dirs, files in os.walk(sync_dir):
-    #     for file in files:
-    #         # add path at the start of filename
-    #         file = os.path.join(root, file)
-    #         curr_sync_list.append(file)
-    #         # if there don't have this file
-    #         # if not file.startswith(ex_files_tuple):
-    #         #     sync_files_append.append(file)
-    # new_files = list(set(curr_sync_list) - set(ex_files_list))
-    # deleted_files = list(set(ex_files_list) - set(curr_sync_list))
-    # print("curr_sync_list: ", curr_sync_list)
-    # print("deleted_files: ", deleted_files)
-    # print("new_files: ", new_files)
-    # # return sync_files_append
-    # return new_files
+    return new_files, deleted_files, mod_files
 
 
-def save_files_list(new_files: set, deleted_files: set):
+def save_files_list(new_files: set, deleted_files: set, mod_files: set):
     """persist the list of file names to db
     """
-    if not new_files and not deleted_files:
+    if not new_files and not deleted_files and not mod_files:
         return
     # original files dict
     sync_files = db["sync_files"]
     new_sync_files = []
+    # if mod_files:
+    #     sync_files = [x for x in sync_files if x["name"] not in mod_files]
+
+    # if there has deleted files
+    if deleted_files or mod_files:
+        # minus deleted files in dict
+        deleted_files.update(mod_files)
+        sync_files = [x for x in sync_files if x["name"] not in deleted_files]
 
     # current files to dict
-    for file in new_files:
-        new_sync_files.append(SyncFile(file).__dict__)
-
-    if deleted_files:
-        # minus deleted files in dict
-        sync_files = [x for x in sync_files if x["name"] not in deleted_files]
+    if new_files or mod_files:
+        new_files.update(mod_files)
+        for new_file in new_files:
+            new_sync_files.append(SyncFile(new_file).__dict__)
 
     # original files dict + current files to dict - deleted files in dict
     sync_files = sync_files + new_sync_files
@@ -98,8 +92,8 @@ def check_files():
     sync_interval = cfg["sync_interval"]
     while True:
         time.sleep(sync_interval)
-        new_files, deleted_files = sync_files()
-        save_files_list(new_files, deleted_files)
+        new_files, deleted_files, mod_files = sync_files()
+        save_files_list(new_files, deleted_files, mod_files)
         if not deleted_files:
             # to send delete message to every VM
             # TODO: asystp.delete(deleted_files)
@@ -110,14 +104,10 @@ def asysfs_main():
     threading.Thread()
 
 
-"""
-a file entity class to record file and provide operations.
-
-"""
-
-
 class SyncFile():
-    """this is a format to presist files entity 
+    """
+    a file entity class to record file and provide operations.
+    a format to presist files entity 
     """
     name = ""
     time = 0
@@ -138,7 +128,11 @@ class SyncFile():
         """
         return os.path.getsize(self.name)
 
+    def __eq__(self, other):
+        return self.name == other.name and self.time == other.time and self.size == other.size
+
 
 if __name__ == "__main__":
-    a, b = sync_files()
-    save_files_list(a, b)
+    new_files, deleted_files, mod_files = sync_files()
+    save_files_list(new_files, deleted_files, mod_files)
+    print("mod: ",  mod_files)

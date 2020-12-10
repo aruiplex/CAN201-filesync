@@ -82,6 +82,7 @@ def pass_argument():
     1. ips,         default: config file
     2. encryption,  default: false
     """
+    global cfg
     parser = argparse.ArgumentParser(
         description='aruisync (aruix sync transfor protocol)')
     parser.add_argument(
@@ -102,6 +103,41 @@ def init():
     """
     判读是否有share文件夹.
     """
+    if not os.path.isfile("db.json"):
+        with open("db.json", "w") as f:
+            cfg_new = {
+                "sys_files": [
+                    "./asysfs.py",
+                    "./asysio.py",
+                    "./asystp.py",
+                    "./asys.py",
+                    "./config.json",
+                    "./db.json",
+                    "./devTool.py",
+                    "./main.py",
+                    "./__pycache__"
+                ],
+                "ignore": [],
+                "sync_files": []
+            }
+            f.write(cfg_new)
+
+    if not os.path.isfile("config.json"):
+        with open("config.json", "w") as f:
+            cfg_new = {
+                "server": {
+                    "host": "127.0.0.1",
+                    "port": 20001
+                },
+                "db_file": "db.json",
+                "sync_interval": 2,
+                "buffer_size": 8,
+                "compress_level": 6,
+                "encryption": False,
+                "ips": [],
+                "sync_dir": "./share"
+            }
+            f.write(cfg_new)
 
 
 if __name__ == "__main__":

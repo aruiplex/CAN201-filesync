@@ -45,7 +45,8 @@ def sender(method: int, filename):
         """
         |  0   |        ALIVE             |  send alive message to check peer get ready to perform action  |
         """
-        send(0, "")
+        # send(0, "")
+        pass
     if method == 1:
         """
         |  1   |        SYNC              |  send sync message (db.json) to identify which file to sync    |
@@ -76,25 +77,14 @@ def sender(method: int, filename):
 
 
 
-def send(method, filename):
+def send():
     buffer_size = cfg["buffer_size"]
     host = cfg["server"]["host"]
     port = cfg["server"]["port"]
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((host, port))
         logger(f"has connect to {host}:{port}", "sender")
-        # total parts number
-        if filename != "":
-            part_num = math.ceil(os.path.getsize(filename) / buffer_size)
-            box = asysio.Package(method, filename.encode(), part_num)
-            for i in range(0, part_num):
-                data = asysio.file2data(filename, i)
-                package = box.wrap(i, data)
-                s.send(package)
-        else:
-            box = asysio.Package(method, "", 0)
-            package = box.wrap(0,"")
-            s.send(package)
+        asysio.alive()
     
 
 def main():
@@ -109,8 +99,11 @@ def main():
     # sender2_t.join()
 
 
-def que_ren(data1):
+# def que_ren(data1):
     # print(len(data1))
     # print(SyncFile("./good_morning").__dict__)
     # # print(len(data2))
     # print(Sync_file("./hello_world").__dict__)
+
+if __name__ == "__main__":
+    send()

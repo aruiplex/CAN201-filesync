@@ -8,6 +8,6 @@
   "buffer_size": 1024,
   "compress_level": 6,
   "encryption": false,
-  "ips": ["192.168.0.1", "192.168.0.2"],
-  "sync_dir": "./"
+  "ips": [],
+  "sync_dir": "./share"
 }
