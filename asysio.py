@@ -106,6 +106,7 @@ def merger(f: TextIOWrapper):
 
 # 这个版本的类是 里面的所有信息都是 bytes
 
+
 class Package:
     """build the header for Package
     build a package, all data in package is bytes
@@ -117,7 +118,7 @@ class Package:
     header_length = 0
     body_length = 0
     header = b""
-    body = b""
+    body = bytearray(b"")
 
     def build(self, header: dict, body: str):
         self.header = str(header).encode()
@@ -126,7 +127,7 @@ class Package:
         self.body_length = len(body)
         return self
 
-    def wrap(self, header: dict, body: str) -> bytes:
+    def __wrap(self, header: dict, body: str) -> bytes:
         """wrap the package
         """
         header = str(header)
@@ -141,11 +142,11 @@ class Package:
 
     def unwrap(self, store):
         """unwrap the package from store
+        已弃用
         """
         self.header_length, self.body_length = struct.unpack(
             "!II", store[:8])
         self.header = store[8:8 + self.header_length]
-        print(self.header)
         self.header = eval(self.header.decode())
         self.body = store[8 + self.header_length:8 +
                           self.header_length + self.body_length]
@@ -156,40 +157,42 @@ class Package:
 
     def alive(self):
         self.method = "ALI".encode()
-        package = Package().wrap(self.__dict__, "")
+        package = Package().__wrap(self.__dict__, "")
         return package
 
     def send(self, filename: bytes, data: bytes):
         self.method = "SED".encode()
         self.filename = filename
-        package = Package().wrap(self.__dict__, data)
+        package = Package().__wrap(self.__dict__, data)
+        return package
+
+    def update(self, filename: bytes, start_index: int, data: bytes):
+        self.method = "UPT".encode()
+        self.filename = filename
+        self.start_index = start_index
+        package = Package().__wrap(self.__dict__, data)
         return package
 
     def sync(self):
         self.method = "SYN".encode()
-        package = Package().wrap(self.__dict__, "")
+        package = Package().__wrap(self.__dict__, "")
         return package
 
-    def delete(self, sync_file_list: set):
+    def delete(self, sync_file_set: set):
         """sync_file_list: List<SyncFile>
         """
         self.method = "DEL".encode()
-        package = Package().wrap(self.__dict__, sync_file_list)
+        package = Package().__wrap(header=self.__dict__, body=sync_file_set)
         return package
 
     def request(self, sync_file_list: list):
         self.method = "REQ".encode()
-        package = Package().wrap(self.__dict__, sync_file_list)
+        package = Package().__wrap(self.__dict__, sync_file_list)
         return package
 
     def finish(self):
-        package = Package().wrap("", "")
+        package = Package().__wrap("", "")
         return package
-
-
-#     # def update(self):
-#     #     self.method = "UPT".encode()
-#     #     return self
 
 
 def data2file(f: TextIOWrapper, index, data: bytes):
@@ -277,4 +280,3 @@ if __name__ == "__main__":
     # file_manager("./share/hello_world")
     # time_consume(test_get_version)
     test1()
-    

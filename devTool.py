@@ -3,6 +3,19 @@ import json
 import time
 import socket
 
+"""
+https://docs.python.org/zh-cn/3/library/struct.html
+"""
+
+
+def print_test_data(n: int, interval: str):
+    content = ""
+    for i in range(n):
+        content += str(i)+interval
+    with open("./test.data", "w") as f:
+        f.write(content)
+    print("Test data is ready")
+
 
 def sender(host, port, buffer_size, file_name):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -34,5 +47,6 @@ def time_consume(function):
 
 
 if __name__ == "__main__":
-    create_test_file("./hello_world", "hello world!", times=10000)
+    print_test_data(1000,"|")
+    # create_test_file("./hello_world", "hello world!", times=10000)
     # create_test_file("./good_morning", "good morning\n")
