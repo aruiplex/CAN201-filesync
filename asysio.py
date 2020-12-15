@@ -1,11 +1,3 @@
-import os
-from asys import logger, cfg, db
-import gzip
-import struct
-import asysio
-from asysfs import SyncFile
-import enum
-
 """
 This file contains all functions related to the inputs outputs and stream operations
 
@@ -74,60 +66,65 @@ header fields:
 4. total;
 
 """
+import os
+from io import TextIOWrapper
+from typing import BinaryIO
+from devTool import time_consume
+from asys import logger, cfg, db
+import gzip
+import struct
+import asysio
+from asysfs import SyncFile
+import enum
+import math
+import hashlib
 
 
+"""
 Methods = enum.Enum("SYN", "DEL", "ALI", "UPT", "SED", "REQ")
+"""
 
 
-def spliter(filename: str, index: int) -> bytes:
-    with open(filename, "r") as file_:
-        file_.seek()
+def file_manager(filename: str) -> bytes:
+    sync_file = SyncFile(filename)
+    # this total is total index
+    total = math.ceil(sync_file.size / cfg["file_block_size"])
+    with open(filename, mode="rb") as f:
+        for index in range(total):
+            splitter(f, index, total)
 
 
-class Header():
+def splitter(f: BinaryIO, index: int, total: int) -> bytes:
+    file_block_size = cfg["file_block_size"]
+    f.seek(index * file_block_size)
+    content = f.read(file_block_size)
+    return content
+
+
+def merger(f: TextIOWrapper):
+    pass
+
+# 这个版本的类是 里面的所有信息都是 bytes
+
+class Package:
     """build the header for Package
+    build a package, all data in package is bytes
     """
+    # header data
     method = b""
-
-    def __init__(self):
-        pass
-
-    def alive(self):
-        self.method = "ALI".encode()
-        return self
-
-    def send(self, index: int, total: int, filename: str):
-        self.method = "SED".encode()
-        return self
-
-    def sync(self):
-        self.method = "SYN".encode()
-        return self
-
-    def delete(self, sync_file_list: list):
-        """sync_file_list: List<SyncFile>
-        """
-        self.method = "DEL".encode()
-        return self
-
-    def request(self):
-        self.method = "REQ".encode()
-        return self
-
-
-class Package():
-    """build a package
-    """
+    filename = b""
+    # package data
     header_length = 0
     body_length = 0
     header = b""
     body = b""
 
-    # def __init__(self, header: dict, body: str):
-    #     self.header = str(header).encode()
-    #     self.body = body.encode()
-    #     self.header_length = len(header)
-    #     self.body_length = len(body)
+    def build(self, header: dict, body: str):
+        self.header = str(header).encode()
+        self.body = body.encode()
+        self.header_length = len(header)
+        self.body_length = len(body)
+        return self
 
     def wrap(self, header: dict, body: str) -> bytes:
         """wrap the package
@@ -138,43 +135,86 @@ class Package():
         self.header_length = len(header)
         self.body_length = len(body)
         return struct.pack("!II", self.header_length, self.body_length) + self.header + self.body
+        # 另一种写 pack 的方法
         # return self.header_length.to_bytes(
         #     4, "big") + self.body_length.to_bytes(4, "big") + self.header + self.body
 
-    def unwarp(self, package):
-        """unwrap the package 
+    def unwrap(self, store):
+        """unwrap the package from store
         """
         self.header_length, self.body_length = struct.unpack(
-            "!II", package[:8])
-        self.header = package[8:8+self.header_length]
-        self.body = package[8+self.header_length:]
+            "!II", store[:8])
+        self.header = store[8:8 + self.header_length]
+        print(self.header)
+        self.header = eval(self.header.decode())
+        self.body = store[8 + self.header_length:8 +
+                          self.header_length + self.body_length]
+        store = store[8 + self.header_length + self.body_length:]
+        # if FIN is true, the finish
+        FIN = self.body_length == 0 and self.header_length == 0
+        return self, store, FIN
+
+    def alive(self):
+        self.method = "ALI".encode()
+        package = Package().wrap(self.__dict__, "")
+        return package
+
+    def send(self, filename: bytes, data: bytes):
+        self.method = "SED".encode()
+        self.filename = filename
+        package = Package().wrap(self.__dict__, data)
+        return package
+
+    def sync(self):
+        self.method = "SYN".encode()
+        package = Package().wrap(self.__dict__, "")
+        return package
+
+    def delete(self, sync_file_list: set):
+        """sync_file_list: List<SyncFile>
+        """
+        self.method = "DEL".encode()
+        package = Package().wrap(self.__dict__, sync_file_list)
+        return package
+
+    def request(self, sync_file_list: list):
+        self.method = "REQ".encode()
+        package = Package().wrap(self.__dict__, sync_file_list)
+        return package
+
+    def finish(self):
+        package = Package().wrap("", "")
+        return package
 
 
-def data2file(filename: str, index, data: bytes):
+#     # def update(self):
+#     #     self.method = "UPT".encode()
+#     #     return self
+
+
+def data2file(f: TextIOWrapper, index, data: bytes):
     """byte stream to file
     1. low level.
     2. base on directory to create file
     """
-    part_size = cfg["buffer_size"]
-    logger(f"write file in {filename}", "asysio")
-    print(f"--------------{filename}-----------------")
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, "w") as f:
-        f.seek(index * part_size)
-        f.write(data.decode())
+    part_size = cfg["file_block_size"]
+    logger(f"write file", "asysio")
+    # TODO:
+    # os.makedirs(os.path.dirname(filename), exist_ok=True)
+    f.seek(index * part_size)
+    f.write(data.decode())
 
 
-def file2data(filename, index: int) -> bytes:
+def file2data(data_file: TextIOWrapper, index: int) -> bytes:
     """byte file to stream 
     1. low level.
     2. base on directory to read file
     """
-    part_size = cfg["buffer_size"]
+    part_size = cfg["file_block_size"]
     position = index * part_size
-    with open(file=filename, mode="rb") as data_file:
-        data_file.seek(position)
-        logger(f"read {filename} part <{index}> into bytes", "asysio")
-        return data_file.read(part_size)
+    data_file.seek(position)
+    logger(f"read part <{index}> into bytes", "asysio")
+    return data_file.read(part_size)
 
 
 def compress(data: bytes) -> bytes:
@@ -189,17 +229,52 @@ def decompress(data: bytes) -> bytes:
     return gzip.decompress(data)
 
 
-if __name__ == "__main__":
-    header_in = {
-        "filename": "helloworld.txt",
-        "index": 1,
-        "total": 10,
-        "size": 114514,
-        "time": 1414815
-    }
+def get_version(filename: str) -> bytes:
+    # block_size = cfg["file_block_size"]
+    block_size = 1024*1024
+    sync_file = SyncFile(filename)
+    total = math.ceil(sync_file.size/block_size)
+    version_bytes = bytearray(b"")
+    with open(filename, "rb") as f:
+        for partion_index in range(total):
+            base_index = partion_index*block_size
+            for i in range(0, block_size, 1024):
+                f.seek(base_index + i)
+                version_bytes.extend(f.read(1))
+            # logger(version_bytes,"version_bytes: ")
+            # logger(hashlib.md5(version_bytes).hexdigest(), f"partion_index: {partion_index}")
+            version_bytes = bytearray(b"")
+
+
+def test1():
     body_in = "hahahahahahaha"
     a = Package()
-    package = a.wrap(header_in, body_in)
+    package = a.send("helloworld.txt", body_in)
     b = Package()
-    b.unwarp(package)
+    b.unwrap(package)
     print(b.__dict__)
+
+
+def test2():
+    a = Package().alive()
+
+
+def test3():
+    filename = "./share/hello_world"
+    sync_file = SyncFile(filename)
+    with open(file=filename, mode="r") as f:
+        total = math.ceil(sync_file.size / cfg["file_block_size"])
+        print("total", total)
+        print(splitter(f, 14, 16))
+
+
+def test_get_version():
+    # get_version("./share/hello_world")
+    get_version("C:\\Users\\zcrbb\\Downloads\\ideaIU-2020.3.exe")
+
+
+if __name__ == "__main__":
+    # file_manager("./share/hello_world")
+    # time_consume(test_get_version)
+    test1()
+    

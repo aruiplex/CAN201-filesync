@@ -11,9 +11,9 @@ def sender(host, port, buffer_size, file_name):
 
 
 def create_test_file(file_name: str, content: str, times=1000):
-    content = content*times
     with open(file_name, "a") as file:
-        file.write(content)
+        for i in range(times):
+            file.write(str(i)+content+"\n")
 
 
 def get_files():
@@ -27,12 +27,12 @@ def get_files():
             # aslogger(os.path.join(file), "get_files")
 
 
-def time_consume(function, args):
+def time_consume(function):
     start_time = time.time()
-    function(args)
+    function()
     print("----- %s seconds -----" % (time.time() - start_time))
 
 
 if __name__ == "__main__":
-    create_test_file("./hello_world", "hello world!\n")
+    create_test_file("./hello_world", "hello world!", times=10000)
     # create_test_file("./good_morning", "good morning\n")

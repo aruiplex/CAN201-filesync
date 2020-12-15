@@ -47,7 +47,7 @@ def get_file_md5(f, chunk_size=8192):
 
 
 def logger(message: str, unit=""):
-    print(f"[{threading.current_thread()}]\t[{unit}]\t\t{message}", end='\n')
+    print(f"[{threading.current_thread().name}]\t[{unit}]\t\t{message}", end='\n')
 
 
 def load_config() -> dict:

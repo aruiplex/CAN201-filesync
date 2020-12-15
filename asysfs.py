@@ -8,6 +8,7 @@ import asysio
 import math
 import os
 import time
+import asystp
 # import asystp
 
 """
@@ -94,10 +95,14 @@ def check_files():
         time.sleep(sync_interval)
         new_files, deleted_files, mod_files = sync_files()
         save_files_list(new_files, deleted_files, mod_files)
-        if not deleted_files:
-            # to send delete message to every VM
-            # TODO: asystp.delete(deleted_files)
-            pass
+        if deleted_files:
+            package = asysio.Package().delete(deleted_files)
+            asystp.send(package)
+        if new_files:
+            for new_file in new_files:
+                package = asysio.Package().send(new_file)
+                asystp.send(package)
+        
 
 
 def asysfs_main():

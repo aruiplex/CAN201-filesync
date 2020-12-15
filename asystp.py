@@ -35,71 +35,22 @@ import struct
 import asysio
 import math
 import devTool
-
 import os
 
 
-def sender(method: int, filename):
-
-    if method == 0:
-        """
-        |  0   |        ALIVE             |  send alive message to check peer get ready to perform action  |
-        """
-        send(0, "")
-    if method == 1:
-        """
-        |  1   |        SYNC              |  send sync message (db.json) to identify which file to sync    |
-        """
-        filename = cfg["db_file"]
-
-    if method == 2:
-        """
-        |  2   |        REQUEST           |  send request message to get messing file                      |
-        """
-        pass
-    if method == 3:
-        """
-        |  3   |        SEND              |  send send message to send a whole file                        |
-        """
-        pass
-    if method == 4:
-        """
-        |  4   |        UPDATE            |  send update message to send a part of whole file              |
-        """
-        pass
-    if method == 5:
-        """
-        |  5   |        DELETE            |  send delete messafe to delete a file                          |
-        """
-        pass
-
-
-
-
-def send(method, filename):
+def send(package):
     buffer_size = cfg["buffer_size"]
     host = cfg["server"]["host"]
     port = cfg["server"]["port"]
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((host, port))
         logger(f"has connect to {host}:{port}", "sender")
-        # total parts number
-        if filename != "":
-            part_num = math.ceil(os.path.getsize(filename) / buffer_size)
-            box = asysio.Package(method, filename.encode(), part_num)
-            for i in range(0, part_num):
-                data = asysio.file2data(filename, i)
-                package = box.wrap(i, data)
-                s.send(package)
-        else:
-            box = asysio.Package(method, "", 0)
-            package = box.wrap(0,"")
-            s.send(package)
-    
+        s.send(package)
+
 
 def main():
     sender1_t = threading.Thread(
-        target=sender, name="sender1", args=("127.0.0.1", 20000, "./sender/hello_world"))
+        target=send, name="sender1", args=("127.0.0.1", 20000, "./share/hello_world"))
     sender1_t.start()
     # sender2_t = threading.Thread(
     #     target=sender, name="sender1", args=("127.0.0.1", 20000, "./hello_world"))
@@ -108,9 +59,8 @@ def main():
     sender1_t.join()
     # sender2_t.join()
 
-
-def que_ren(data1):
-    # print(len(data1))
-    # print(SyncFile("./good_morning").__dict__)
-    # # print(len(data2))
-    # print(Sync_file("./hello_world").__dict__)
+if __name__ == "__main__":
+    filename = "./share/hello_world"
+    with open(filename ,"r") as f:
+        data = f.read()
+        send(asysio.Package().send(filename,data))

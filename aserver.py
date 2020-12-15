@@ -3,9 +3,10 @@ import socket
 import threading
 from asys import logger, cfg
 import struct
-import asysio
+from asysio import Package
 import math
 import os
+import json
 
 syn = True
 peers = []
@@ -18,9 +19,11 @@ def listener() -> socket:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((host, port))
         s.listen()
+        logger(f"<{n}> Listening on ATP://{host}:{port}", "listener")
         while syn:
             connection, addr = s.accept()
             logger(f"<{n}> Connected by {addr}", "listener")
+            # create new thread to re
             threading.Thread(target=receiver, args=(
                 connection,)).start()
             n = n+1
@@ -29,33 +32,34 @@ def listener() -> socket:
 
 def receiver(connection: socket):
     global syn, peers
-    buffer_size = cfg["buffer_size"] + 13
+    buffer_size = cfg["buffer_size"]
+    store = b""
     with connection:
         while True:
-            package = connection.recv(buffer_size)
-            # if there is no package
-            if not package:
+            # receive_bytes is this time receive data
+            receive_bytes = connection.recv(buffer_size)
+            # if there is no package then break
+            if not receive_bytes:
                 break
+            store += receive_bytes
+            # if it is common signal
+            package, store, FIN = Package().unwrap(store)
             # if it is finish signal
-            if package == b"FIN":
+            if FIN:
                 syn = False
                 logger("break", "receiver")
                 break
-            # if it is common signal
-            method = struct.unpack("!B", package[:1])
-            if method == 0:
-                # know this peer is online
-                peers.add(connection)
-            # if method == 1:
+            package_analysis(package)
 
-            # if method == 2:
-            # if method == 3:
-            # if method == 4:
-            # if method == 5:
-            #     pass
 
-            method, index, total, filename, data = asysio.unwarp(package)
-            asysio.data2file(filename, index, data)
+def package_analysis(package: Package):
+    if package.method == b"SED":
+        logger("i am here")
+        with open("."+package.filename, "wb") as f:
+            f.write(package.body)
+    # elif package.method == b"SYC":
+    #     pass
+    
 
 
 if __name__ == "__main__":
