@@ -1,17 +1,1 @@
-{
-  "device_id": "d786a000-2332-42bf-85a4-084caefff71d",
-  "sys_files": [
-    "./asysfs.py",
-    "./asysio.py",
-    "./asystp.py",
-    "./asys.py",
-    "./config.json",
-    "./db.json",
-    "./devTool.py",
-    "./main.py",
-    "./__pycache__"
-  ],
-  "ignore": [],
-  "sync_files": [],
-  "transfering": ""
-}
+{"device_id": "d786a000-2332-42bf-85a4-084caefff71d", "sys_files": [], "ignore": [], "recv_files": [], "sync_files": [], "transfering": ""}

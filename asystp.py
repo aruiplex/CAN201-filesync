@@ -36,27 +36,36 @@ import asysio
 import math
 import devTool
 import os
+import time
 
 
 def send(package):
-    host = cfg["server"]["host"]
-    port = cfg["server"]["port"]
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((host, port))
-        logger(f"has connect to {host}:{port}", "sender")
-        s.send(package)
+    # host = cfg["server"]["host"]
+    # port = cfg["server"]["port"]
+    host = "127.0.0.1"
+    ports = cfg["ips"]
+    for port in ports:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        send_to_peer_threading = threading.Thread(target=send_to_peer,
+                                                    args=(s, host, port, package), name="send_to_peer")
+        send_to_peer_threading.start()
 
 
-def main():
-    sender1_t = threading.Thread(
-        target=send, name="sender1", args=("127.0.0.1", 20000, "./share/hello_world"))
-    sender1_t.start()
-    # sender2_t = threading.Thread(
-    #     target=sender, name="sender1", args=("127.0.0.1", 20000, "./hello_world"))
-    # sender2_t.start()
+def send_to_peer(s: socket, host: str, port: int, package):
+    # todo: 不停访问一个 peer
+    while True:
+        try:
+            s.connect((host, port))
+        except ConnectionRefusedError:
+            time.sleep(0.1)
+            continue
+        else:
+            logger(f"has connect to {host}:{port}", "sender")
+            break    
+    logger("start send")
+    s.send(package)
+    s.close()
 
-    sender1_t.join()
-    # sender2_t.join()
 
 
 def send_signal():
@@ -73,7 +82,7 @@ def del_signal():
 
 
 def upt_signal():
-    with open("test.data",'r') as f:
+    with open("test.data", 'r') as f:
         data = f.read()
     package = asysio.Package().update("./share/hello_world", 10, data)
     send(package)

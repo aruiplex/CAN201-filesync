@@ -52,7 +52,10 @@ def receiver(connection: socket):
         if header["method"] == b"SED":
             logger(f"{header}", '<SED>')
             stop = []
-            db.update(["transfering"], header["filename"])
+            # 把正在传的文件记录一下, 文件锁
+            # TODO 线程同步 ?
+            db.update(transfering=header["filename"])
+            db["recv_files"].append(header["filename"])
             data_dump_threading = threading.Thread(
                 target=data_dump, args=(header, q, stop), name=f"data_dump for {threading.current_thread().name}")
             data_dump_threading.start()
@@ -62,8 +65,9 @@ def receiver(connection: socket):
                     stop.append(1)
                     break
                 q.put(receive_bytes)
-                logger(f"已经接收了<{debug_i}>轮", "data_dump")
                 debug_i += 1
+            # 解开文件锁
+            db.update(transfering="")
 
         if header["method"] == b"UPT":
             logger(f"{header}", '<UPT>')
@@ -77,12 +81,12 @@ def receiver(connection: socket):
                     try:
                         content = q.get(block=True, timeout=0.5)
                         f.write(content)
-                        logger(f"已经接收了<{debug_i}>轮", "aserver_UPT")
                         debug_i += 1
                         if not receive_bytes:
                             break
                     except Empty:
                         logger(Empty, "Empty")
+                logger(f"{header['filename']} Finish", "UPT transfer")
 
         if header["method"] == b"DEL":
             logger(f"<DEL>: {header}", 'Header')
@@ -106,7 +110,9 @@ def receiver(connection: socket):
 
 
 def data_dump(header, q: queue.Queue, stop):
-    with open(header["filename"], "wb") as f:
+    filename = header["filename"]
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "wb") as f:
         while len(stop) == 0 or not q.empty():
             try:
                 content = q.get(block=False, timeout=1)
@@ -115,20 +121,4 @@ def data_dump(header, q: queue.Queue, stop):
                 continue
             except Exception:
                 logger(f"Some error appearance: {Exception}.", "data_dump")
-
-
-# def package_analysis(package: asysio.Package):
-#     if package.method == b"SED":
-#         logger("i am here")
-#         with open("." + package.filename, "wb") as f:
-#             f.write(package.body)
-    # elif package.method == b"SYC":
-    #     pass
-
-
-# if __name__ == "__main__":
-#     listener_t = threading.Thread(
-#         target=listener, name="listener", daemon=True)
-#     listener_t.start()
-#     listener_t.join()
-#     logger("退出")
+    logger(f"{filename} Finish", "data_dump")

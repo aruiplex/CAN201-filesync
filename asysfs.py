@@ -28,6 +28,8 @@ def sync_files() -> tuple:
     """
     # sync directory
     sync_dir = cfg["sync_dir"]
+    # receive files
+    rev_files = set(db["recv_files"])
     # current exist files
     cur_files = set()
     # past exist files
@@ -53,7 +55,7 @@ def sync_files() -> tuple:
                 if file_obj.size != ori_file["size"] or file_obj.time != ori_file["time"]:
                     mod_files.add(file_obj.name)
 
-    new_files = cur_files - ori_files - ign_files
+    new_files = cur_files - ori_files - ign_files - rev_files
     deleted_files = ori_files - cur_files
     return new_files, deleted_files, mod_files
 
@@ -92,6 +94,7 @@ def update_db_file(new_files: set, deleted_files: set, mod_files: set):
     # original files dict + current files to dict - deleted files in dict
     sync_files = sync_files + new_sync_files
     db.update(sync_files=sync_files)
+    logger(sync_files, "sync_files")
 
 
 def file_sys():
@@ -103,27 +106,39 @@ def file_sys():
     while True:
         time.sleep(sync_interval)
         new_files, deleted_files, mod_files = sync_files()
+        # logger(new_files, "new_files")
+        # logger(deleted_files, "deleted_files")
+        # logger(mod_files, "mod_files")
+
         update_db_file(new_files, deleted_files, mod_files)
 
         if deleted_files:
             package = asysio.Package().delete(deleted_files)
             asystp.send(package)
             logger("send DEL package", "file_sys")
+
         if new_files:
             for new_file in new_files:
-                package = asysio.Package().send(new_file)
-                asystp.send(package)
-                logger("send SED package", "file_sys")
-        if mod_files:
-            # TODO:
-            package = asysio.Package().update(mod_files, "mod_files_test"*100)
-            asystp.send(package)
-            logger("send MOD package", "file_sys")
+                logger(new_files, "new_files")
+                with open(new_file, "r") as f:
+                    data = f.read()
+                    package = asysio.Package().send(new_file, data)
+                    asystp.send(package)
+                    logger("send SED package", "file_sys")
 
-        logger("update db", "file_sys")
+        if mod_files:
+            for mod_file in mod_files:
+                with open(mod_file, "r") as f:
+                    content = f.read(0.4*1024*200)
+                    package = asysio.Package().update(mod_file, 0, content)
+                    asystp.send(package)
+                    logger(
+                        f"send MOD package for file {mod_files}", "file_sys")
+
+        # logger("update db", "file_sys")
         n += 1
         if n >= total:
-            logger("persist db", "file_sys")
+            # logger("persist db", "file_sys")
             persist_db_file()
             n = 0
 

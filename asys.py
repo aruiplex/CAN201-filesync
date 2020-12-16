@@ -100,7 +100,7 @@ def pass_argument():
     if args.ip == None:
         logger("There are no ip input, use ip in config", "pass_arg")
     else:
-        cfg["ips"] = args.ip.split(',')
+        cfg["ips"] =  [int(n) for n in args.ip.split(",")]
 
 
 def load_logo() -> str:
