@@ -24,17 +24,17 @@ spliter(file: str, index: int) -> bytes
 2. pass file and index to seek part to read into memory
 
 
-+------------------+--------------------------
-|                  | r   r+   w   w+   a   a+
-|------------------+--------------------------
-|read              | +   +        +        +
-|write             |     +    +   +    +   +
-|write after seek  |     +    +   +
-|create            |          +   +    +   +
-|truncate          |          +   +
-|position at start | +   +    +   +
-|position at end   |                   +   +
-+------------------+--------------------------
++------------------+--------------------------  
+|                  | r   r+   w   w+   a   a+   
+|------------------+--------------------------  
+|read              | +   +        +        +    
+|write             |     +    +   +    +   +    
+|write after seek  |     +    +   + 
+|create            |          +   +    +   +    
+|truncate          |          +   + 
+|position at start | +   +    +   + 
+|position at end   |                   +   +    
++------------------+--------------------------  
 
 ATP: aruix transfer protocol
 +------+--------------------------+----------------------------------------------------------------+
@@ -132,7 +132,7 @@ class Package:
         """
         header = str(header)
         self.header = header.encode()
-        self.body = body.encode()
+        self.body = str(body).encode()
         self.header_length = len(header)
         self.body_length = len(body)
         return struct.pack("!II", self.header_length, self.body_length) + self.header + self.body
@@ -256,10 +256,6 @@ def test1():
     b = Package()
     b.unwrap(package)
     print(b.__dict__)
-
-
-def test2():
-    a = Package().alive()
 
 
 def test3():

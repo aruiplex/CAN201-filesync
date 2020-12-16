@@ -1,7 +1,7 @@
 import uuid
 import socket
 import threading
-from asys import logger, cfg
+from asys import logger, cfg, db
 import struct
 import asysio
 import queue
@@ -10,8 +10,7 @@ import os
 import json
 from queue import Empty
 
-syn = True
-peers = []
+syn = []
 
 
 def listener() -> socket:
@@ -22,21 +21,18 @@ def listener() -> socket:
         s.bind((host, port))
         s.listen()
         logger(f"<{n}> Listening on ATP://{host}:{port}", "listener")
-        while syn:
+        while len(syn) == 0:
             connection, addr = s.accept()
             logger(f"<{n}> Connected by {addr}", "listener")
             # create new thread to re
             threading.Thread(target=receiver, args=(
-                connection,)).start()
-            n = n + 1
+                connection,), name=f"ReceiverThread-{n}").start()
+            n += 1
         logger("break", "listener")
 
 
-body = bytearray(b"")
-
-
 def receiver(connection: socket):
-    global syn, peers, body
+    global syn
     buffer_size = cfg["buffer_size"]
     store = bytearray(b"")
     debug_i = 0
@@ -49,12 +45,16 @@ def receiver(connection: socket):
         header = eval(store[8:8 + header_length].decode())
         q.put(store[8 + header_length:])
 
+        if header["method"] == b"FIN":
+            logger(f"<FIN>{header}", 'Header')
+            syn.append("FINISH")
+
         if header["method"] == b"SED":
-            logger(f"<SED>{header}", 'Header')
-            # with open(header["filename"], "wb") as f:
+            logger(f"{header}", '<SED>')
             stop = []
+            db.update(["transfering"], header["filename"])
             data_dump_threading = threading.Thread(
-                target=data_dump, args=(header, q, stop), name="data_dump")
+                target=data_dump, args=(header, q, stop), name=f"data_dump for {threading.current_thread().name}")
             data_dump_threading.start()
             while True:
                 receive_bytes = connection.recv(buffer_size)
@@ -66,7 +66,7 @@ def receiver(connection: socket):
                 debug_i += 1
 
         if header["method"] == b"UPT":
-            logger(f"<UPT>: {header}", 'Header')
+            logger(f"{header}", '<UPT>')
             with open(header["filename"], "r+b") as f:
                 start_index = header["start_index"]
                 logger(f"start_index: {start_index}", "update")
@@ -74,11 +74,10 @@ def receiver(connection: socket):
                 while True:
                     receive_bytes = connection.recv(buffer_size)
                     q.put(receive_bytes)
-                    logger(q)
                     try:
                         content = q.get(block=True, timeout=0.5)
                         f.write(content)
-                        logger(f"已经接收了<{debug_i}>轮", "data_dump")
+                        logger(f"已经接收了<{debug_i}>轮", "aserver_UPT")
                         debug_i += 1
                         if not receive_bytes:
                             break
@@ -97,7 +96,10 @@ def receiver(connection: socket):
             del_file_set = eval(q.get())
             logger(f"{del_file_set}", "delete")
             for del_file in del_file_set:
-                os.remove(del_file)
+                try:
+                    os.remove(del_file)
+                except FileNotFoundError:
+                    logger(f"{del_file} is not found", "aserver")
 
         if header["method"] == b"SYN":
             logger(f"<SYN>: {header}", 'Header')
@@ -107,26 +109,26 @@ def data_dump(header, q: queue.Queue, stop):
     with open(header["filename"], "wb") as f:
         while len(stop) == 0 or not q.empty():
             try:
-                dongxi = q.get(block=False, timeout=1)
-                f.write(dongxi)
+                content = q.get(block=False, timeout=1)
+                f.write(content)
             except queue.Empty:
-                logger(f"Queue empty", "data_dump")
+                continue
             except Exception:
                 logger(f"Some error appearance: {Exception}.", "data_dump")
 
 
-def package_analysis(package: asysio.Package):
-    if package.method == b"SED":
-        logger("i am here")
-        with open("." + package.filename, "wb") as f:
-            f.write(package.body)
+# def package_analysis(package: asysio.Package):
+#     if package.method == b"SED":
+#         logger("i am here")
+#         with open("." + package.filename, "wb") as f:
+#             f.write(package.body)
     # elif package.method == b"SYC":
     #     pass
 
 
-if __name__ == "__main__":
-    listener_t = threading.Thread(
-        target=listener, name="listener", daemon=True)
-    listener_t.start()
-    listener_t.join()
-    logger("退出")
+# if __name__ == "__main__":
+#     listener_t = threading.Thread(
+#         target=listener, name="listener", daemon=True)
+#     listener_t.start()
+#     listener_t.join()
+#     logger("退出")

@@ -9,7 +9,6 @@ import math
 import os
 import time
 import asystp
-# import asystp
 
 """
 sync_files() -> new_files, deleted_files, mod_files:
@@ -59,9 +58,17 @@ def sync_files() -> tuple:
     return new_files, deleted_files, mod_files
 
 
-def save_files_list(new_files: set, deleted_files: set, mod_files: set):
+def persist_db_file():
     """persist the list of file names to db
     """
+    with open(cfg["db_file"], "w") as outfile:
+        json.dump(db, outfile)
+
+
+def update_db_file(new_files: set, deleted_files: set, mod_files: set):
+    """update db dict
+    """
+    global cfg, db
     if not new_files and not deleted_files and not mod_files:
         return
     # original files dict
@@ -85,28 +92,40 @@ def save_files_list(new_files: set, deleted_files: set, mod_files: set):
     # original files dict + current files to dict - deleted files in dict
     sync_files = sync_files + new_sync_files
     db.update(sync_files=sync_files)
-    with open(cfg["db_file"], "w") as outfile:
-        json.dump(db, outfile)
 
 
-def check_files():
+def file_sys():
+    """This function arrange all file system 
+    """
     sync_interval = cfg["sync_interval"]
+    n = 0
+    total = cfg["db_update_persist_ratio"]
     while True:
         time.sleep(sync_interval)
         new_files, deleted_files, mod_files = sync_files()
-        save_files_list(new_files, deleted_files, mod_files)
+        update_db_file(new_files, deleted_files, mod_files)
+
         if deleted_files:
             package = asysio.Package().delete(deleted_files)
             asystp.send(package)
+            logger("send DEL package", "file_sys")
         if new_files:
             for new_file in new_files:
                 package = asysio.Package().send(new_file)
                 asystp.send(package)
-        
+                logger("send SED package", "file_sys")
+        if mod_files:
+            # TODO:
+            package = asysio.Package().update(mod_files, "mod_files_test"*100)
+            asystp.send(package)
+            logger("send MOD package", "file_sys")
 
-
-def asysfs_main():
-    threading.Thread()
+        logger("update db", "file_sys")
+        n += 1
+        if n >= total:
+            logger("persist db", "file_sys")
+            persist_db_file()
+            n = 0
 
 
 class SyncFile():
@@ -137,7 +156,7 @@ class SyncFile():
         return self.name == other.name and self.time == other.time and self.size == other.size
 
 
-if __name__ == "__main__":
-    new_files, deleted_files, mod_files = sync_files()
-    save_files_list(new_files, deleted_files, mod_files)
-    print("mod: ",  mod_files)
+# if __name__ == "__main__":
+#     new_files, deleted_files, mod_files = sync_files()
+#     save_files_list(new_files, deleted_files, mod_files)
+#     print("mod: ",  mod_files)

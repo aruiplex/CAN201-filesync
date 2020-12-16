@@ -1,3 +1,4 @@
+import signal
 import json
 import sys
 import argparse
@@ -29,6 +30,9 @@ pass_argument():
 load_config() -> dict:
 1. load config.json to system 
 
+init():
+1. prepare the config file to start system 
+
 Global variables:
 
 cfg:    asys(aruix sync transfer protocol system) global config
@@ -47,7 +51,8 @@ def get_file_md5(f, chunk_size=8192):
 
 
 def logger(message: str, unit=""):
-    print(f"[{threading.current_thread().name}]\t[{unit}]\t\t{message}", end='\n')
+    print(f"[{threading.current_thread().name}]\t[{unit}]\t{message}".expandtabs(
+        30), end='\n')
 
 
 def load_config() -> dict:
@@ -96,14 +101,39 @@ def pass_argument():
         logger("There are no ip input, use ip in config", "pass_arg")
     else:
         cfg["ips"] = args.ip.split(',')
-    logger(cfg, "pass_arg")
+
+
+def load_logo() -> str:
+    logo_file = cfg["logo_file"]
+    with open(logo_file, "r") as f:
+        content = f.read()
+    return content
 
 
 def init():
     """
     判读是否有share文件夹.
     """
-    if not os.path.isfile("db.json"):
+    if not os.path.isfile("config.json"):
+        with open("config.json", "w") as f:
+            cfg_new = {
+                "server": {
+                    "host": "127.0.0.1",
+                    "port": 20001
+                },
+                "db_file": "db.json",
+                "sync_interval": 2,
+                "buffer_size": 8,
+                "compress_level": 6,
+                "encryption": False,
+                "ips": [],
+                "sync_dir": "./share"
+            }
+            f.write(cfg_new)
+
+    db_file = cfg["db_file"]
+
+    if not os.path.isfile(db_file):
         with open("db.json", "w") as f:
             cfg_new = {
                 "sys_files": [
@@ -122,24 +152,26 @@ def init():
             }
             f.write(cfg_new)
 
-    if not os.path.isfile("config.json"):
-        with open("config.json", "w") as f:
-            cfg_new = {
-                "server": {
-                    "host": "127.0.0.1",
-                    "port": 20001
-                },
-                "db_file": "db.json",
-                "sync_interval": 2,
-                "buffer_size": 8,
-                "compress_level": 6,
-                "encryption": False,
-                "ips": [],
-                "sync_dir": "./share"
-            }
-            f.write(cfg_new)
+
+stop_times = 0
 
 
-if __name__ == "__main__":
+def receive_signal(signalNumber, frame):
+    import asysfs
+    global stop_times
+    logger("Receive stop signal", "catch_signal")
 
-    pass_argument()
+    # 在退出前保存 db.json
+    # new_files, deleted_files, mod_files = asysfs.sync_files()
+    # asysfs.update_db_file(new_files, deleted_files, mod_files)
+    asysfs.persist_db_file()
+    logger("Saved to db", "catch_signal")
+
+    stop_times += 1
+    if stop_times >= 2:
+        logger("Bye  ヽ(*。>Д<)o゜", "Aruix Sync")
+        sys.exit(0)
+
+
+# if __name__ == "__main__":
+#     pass_argument()

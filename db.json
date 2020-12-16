@@ -12,8 +12,6 @@
     "./__pycache__"
   ],
   "ignore": [],
-  "sync_files": [
-    { "name": "./share/helloworld", "time": 1607590238.514588, "size": 58 },
-    { "name": "./share/hello_world", "time": 1607745599.1012278, "size": 15986 }
-  ]
+  "sync_files": [],
+  "transfering": ""
 }

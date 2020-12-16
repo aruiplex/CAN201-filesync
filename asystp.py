@@ -39,7 +39,6 @@ import os
 
 
 def send(package):
-    buffer_size = cfg["buffer_size"]
     host = cfg["server"]["host"]
     port = cfg["server"]["port"]
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
