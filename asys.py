@@ -50,11 +50,8 @@ def get_file_md5(f, chunk_size=8192):
     return h.hexdigest()
 
 
-now = datetime.now()
-
-
 def logger(message: str, unit=""):
-    current_time = now.strftime("%H:%M:%S")
+    current_time = datetime.now().strftime("%H:%M:%S")
     print(f"|{current_time}| [{threading.current_thread().name}]\t[{unit}]\t{message}".expandtabs(
         30), end='\n')
 
