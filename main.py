@@ -13,7 +13,7 @@ print(load_logo())
 
 init()
 
-print("[线程名]\t[函数名]\t[操作]".expandtabs(27))
+print("|时间| [线程名]\t[函数名]\t[操作]".expandtabs(27))
 
 # pass arguments
 pass_argument()
@@ -24,7 +24,7 @@ listener_threading = threading.Thread(
 listener_threading.start()
 
 file_sys_threading = threading.Thread(
-    target=asysfs.file_sys, name="file sys scanner")
+    target=asysfs.file_sys, name="file_scanner")
 file_sys_threading.start()
 logger("file system start", "file_sys")
 

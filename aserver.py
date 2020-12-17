@@ -42,7 +42,7 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     notation = "<SED>"
     if start_index != 0:
         notation = "<UPT>"
-    logger(f"{notation}{header}", 'receiver')
+    logger(f"{notation}{header}", 'due_send')
     stop = []
     # 把正在传的文件记录一下, 文件锁
     transfering_set = set(db["transfering"])
@@ -63,14 +63,14 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     # 解开文件锁
     transfering_set.discard(header["filename"])
     db["transfering"] = list(transfering_set)
-    logger(f"{notation} is finish", "receiver")
+    logger(f"{notation} is finish", "due_send")
 
 
 def due_request(header):
     filename = header["filename"]
-    logger(f"<REQ>{header}", 'receiver')
+    logger(f"<REQ>{header}", 'due_request')
     if filename not in db["sync_files"]:
-        logger(f"<REQ>{filename} is received file.", "receiver")
+        logger(f"<REQ>{filename} is received file.", "due_request")
         return
     with open(filename, "r+b") as f:
         start_index = header["start_index"]
@@ -78,23 +78,23 @@ def due_request(header):
         data = f.read()
         package = asysio.Package().update(filename, start_index, data)
         asystp.send(package)
-        logger(f"<REQ>{filename} is update", "receiver")
+        logger(f"<REQ>{filename} is update", "due_request")
 
 
-def due_del(connection, header, q):
-    logger(f"<DEL>: {header}", 'Header')
+def due_delete(connection, header, q):
+    logger(f"<DEL>: {header}", 'due_delete')
     while True:
         receive_bytes = connection.recv(cfg["buffer_size"])
         if not receive_bytes:
             break
         q.put(receive_bytes)
     del_file_set = eval(q.get())
-    logger(f"{del_file_set}", "delete")
+    logger(f"{del_file_set}", "due_delete")
     for del_file in del_file_set:
         try:
             os.remove(del_file)
         except FileNotFoundError:
-            logger(f"{del_file} is not found", "aserver")
+            logger(f"{del_file} is not found", "due_delete")
 
 
 def receiver(connection: socket):
@@ -132,7 +132,7 @@ def receiver(connection: socket):
             due_request(header)
 
         if header["method"] == "DEL":
-            due_del(connection, header, q)
+            due_delete(connection, header, q)
 
 
 def data_dump(header, q: queue.Queue, stop, start_index=0):

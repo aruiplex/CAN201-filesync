@@ -33,14 +33,11 @@ def sync_files() -> tuple:
     # current exist files
     cur_files = set()
     # past exist files
-    ori_files = set()
+    ori_files = set(db["sync_files"]).union(rev_files)
     # modified files
     mod_files = set()
     # ignored files
     ign_files = set(db["ignore"])
-
-    for sync_recording in db["sync_files"]:
-        ori_files.add(sync_recording["name"])
 
     for root, dirs, files in os.walk(sync_dir):
         for cur_file in files:
