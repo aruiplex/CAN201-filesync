@@ -30,13 +30,36 @@ send_header() -> None
 
 import socket
 import threading
-from asys import logger, cfg
+from asys import logger, cfg, db
 import struct
 import asysio
 import math
 import devTool
 import os
 import time
+import asysfs
+
+
+def retransfer():
+    transfering_set = set(db["transfering"])
+    # nothing to retransfer
+    if len(transfering_set) == 0:
+        return
+
+    logger(f"retransfer files {transfering_set}", "retransfer")
+    for filename in transfering_set:
+        try:
+            sync_file = asysfs.SyncFile(filename)
+            logger(
+                f"starting continue transfer: {sync_file.name}", "Discontinued transmission")
+            package = asysio.Package().request(sync_file.name, sync_file.size)
+            send(package)
+        except FileNotFoundError:
+            logger(
+                f"starting continue transfer for a new file: {filename}", "Discontinued transmission")
+            package = asysio.Package().request(filename, 0)
+            send(package)
+    transfering_set.discard(filename)
 
 
 def send(package):
@@ -52,7 +75,6 @@ def send(package):
 
 
 def __send_to_peer(s: socket, host: str, port: int, package):
-    # todo: 不停访问一个 peer
     while True:
         try:
             s.connect((host, port))
@@ -62,9 +84,9 @@ def __send_to_peer(s: socket, host: str, port: int, package):
         else:
             logger(f"has connect to {host}:{port}", "sender")
             break
-    logger("start send")
     s.send(package)
     s.close()
+    logger("File send finish","sender")
 
 
 def send_signal():

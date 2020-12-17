@@ -30,6 +30,7 @@ db:     persist info to database
 import signal
 import json
 import sys
+from datetime import datetime
 import argparse
 import threading
 import os
@@ -49,8 +50,12 @@ def get_file_md5(f, chunk_size=8192):
     return h.hexdigest()
 
 
+now = datetime.now()
+
+
 def logger(message: str, unit=""):
-    print(f"[{threading.current_thread().name}]\t[{unit}]\t{message}".expandtabs(
+    current_time = now.strftime("%H:%M:%S")
+    print(f"|{current_time}| [{threading.current_thread().name}]\t[{unit}]\t{message}".expandtabs(
         30), end='\n')
 
 
