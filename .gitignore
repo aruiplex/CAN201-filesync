@@ -4,3 +4,5 @@ sharea
 shareb
 dev
 .idea/
+db.json
+config.json

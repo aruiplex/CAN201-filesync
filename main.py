@@ -2,6 +2,8 @@ import aserver
 import threading
 from asys import *
 import asysfs
+import asysio
+import asystp
 
 """
 This is the py file to start aruix sync
@@ -31,6 +33,13 @@ logger("file system start", "file_sys")
 
 signal.signal(signal.SIGINT, receive_signal)
 logger("Listening signal", "catch_signal")
+
+# 断点续传保护机制
+if db["transfering"] != "":
+    sync_file = asysfs.SyncFile(db["transfering"])
+    logger(f"starting continue transfer: {sync_file.name}", "Discontinued transmission")
+    package = asysio.Package().request(sync_file.name, sync_file.size)
+    asystp.send(package)
 
 listener_threading.join()
 file_sys_threading.join()

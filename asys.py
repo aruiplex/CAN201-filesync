@@ -119,7 +119,7 @@ def init():
             cfg_new = {
                 "server": {
                     "host": "127.0.0.1",
-                    "port": 20001
+                    "port": 20000
                 },
                 "db_file": "db.json",
                 "sync_interval": 2,

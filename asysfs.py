@@ -120,7 +120,7 @@ def file_sys():
         if new_files:
             for new_file in new_files:
                 logger(new_files, "new_files")
-                with open(new_file, "r") as f:
+                with open(new_file, "rb") as f:
                     data = f.read()
                     package = asysio.Package().send(new_file, data)
                     asystp.send(package)
@@ -128,8 +128,8 @@ def file_sys():
 
         if mod_files:
             for mod_file in mod_files:
-                with open(mod_file, "r") as f:
-                    content = f.read(0.4*1024*200)
+                with open(mod_file, "rb") as f:
+                    content = f.read(300*1024)
                     package = asysio.Package().update(mod_file, 0, content)
                     asystp.send(package)
                     logger(

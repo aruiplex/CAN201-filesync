@@ -46,12 +46,12 @@ def send(package):
     ports = cfg["ips"]
     for port in ports:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        send_to_peer_threading = threading.Thread(target=send_to_peer,
-                                                    args=(s, host, port, package), name="send_to_peer")
+        send_to_peer_threading = threading.Thread(target=__send_to_peer,
+                                                  args=(s, host, port, package), name="send_to_peer")
         send_to_peer_threading.start()
 
 
-def send_to_peer(s: socket, host: str, port: int, package):
+def __send_to_peer(s: socket, host: str, port: int, package):
     # todo: 不停访问一个 peer
     while True:
         try:
@@ -61,16 +61,15 @@ def send_to_peer(s: socket, host: str, port: int, package):
             continue
         else:
             logger(f"has connect to {host}:{port}", "sender")
-            break    
+            break
     logger("start send")
     s.send(package)
     s.close()
 
 
-
 def send_signal():
     filename = "./share/hello_world"
-    with open(filename, "r") as f:
+    with open(filename, "rb") as f:
         data = f.read()
         send(asysio.Package().send(filename, data))
 
