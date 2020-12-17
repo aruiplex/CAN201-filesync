@@ -70,7 +70,7 @@ def send_to_peer(s: socket, host: str, port: int, package):
 
 def send_signal():
     filename = "./share/hello_world"
-    with open(filename, "r") as f:
+    with open(filename, "rb") as f:
         data = f.read()
         send(asysio.Package().send(filename, data))
 

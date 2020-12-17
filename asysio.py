@@ -111,13 +111,13 @@ class Package:
     """build the header for Package
     build a package, all data in package is bytes
     """
-    # header data
-    method = b""
-    filename = b""
-    # package data
-    header_length = 0
-    body_length = 0
-    header = b""
+    # # header data
+    # method = b""
+    # filename = b""
+    # # package data
+    # header_length = 0
+    # body_length = 0
+    # header = b""
     body = bytearray(b"")
 
     def build(self, header: dict, body: str):
@@ -127,12 +127,12 @@ class Package:
         self.body_length = len(body)
         return self
 
-    def __wrap(self, header: dict, body: str) -> bytes:
+    def __wrap(self, header: dict, body: bytes) -> bytes:
         """wrap the package
         """
         header = str(header)
         self.header = header.encode()
-        self.body = str(body).encode()
+        self.body = body
         self.header_length = len(header)
         self.body_length = len(body)
         return struct.pack("!II", self.header_length, self.body_length) + self.header + self.body
@@ -182,17 +182,17 @@ class Package:
         """sync_file_list: List<SyncFile>
         """
         self.method = "DEL".encode()
-        package = Package().__wrap(header=self.__dict__, body=sync_file_set)
+        package = Package().__wrap(header=self.__dict__, body=str(sync_file_set).encode())
         return package
 
-    def request(self, sync_file_list: list):
-        self.method = "REQ".encode()
-        package = Package().__wrap(self.__dict__, sync_file_list)
-        return package
+    # def request(self, sync_file_list: list):
+    #     self.method = "REQ".encode()
+    #     package = Package().__wrap(self.__dict__, sync_file_list)
+    #     return package
 
-    def finish(self):
-        package = Package().__wrap("", "")
-        return package
+    # def finish(self):
+    #     package = Package().__wrap("", "")
+    #     return package
 
 
 def data2file(f: TextIOWrapper, index, data: bytes):
@@ -261,7 +261,7 @@ def test1():
 def test3():
     filename = "./share/hello_world"
     sync_file = SyncFile(filename)
-    with open(file=filename, mode="r") as f:
+    with open(file=filename, mode="rb") as f:
         total = math.ceil(sync_file.size / cfg["file_block_size"])
         print("total", total)
         print(splitter(f, 14, 16))
