@@ -140,9 +140,9 @@ class Package:
         # return self.header_length.to_bytes(
         #     4, "big") + self.body_length.to_bytes(4, "big") + self.header + self.body
 
-    def unwrap(self, store):
-        """unwrap the package from store
-        已弃用
+    def __unwrap(self, store):
+        """已弃用
+        unwrap the package from store
         """
         self.header_length, self.body_length = struct.unpack(
             "!II", store[:8])
@@ -185,10 +185,15 @@ class Package:
         package = Package().__wrap(header=self.__dict__, body=str(sync_file_set).encode())
         return package
 
-    # def request(self, sync_file_list: list):
-    #     self.method = "REQ".encode()
-    #     package = Package().__wrap(self.__dict__, sync_file_list)
-    #     return package
+    def request(self, filename: str, start_index: int):
+        """The request header of the breakpoint continuation, 
+        filename is the broken file, start_index is its last byte
+        """
+        self.method = "REQ".encode()
+        self.filename = filename
+        self.start_index = start_index
+        package = Package().__wrap(self.__dict__, "")
+        return package
 
     # def finish(self):
     #     package = Package().__wrap("", "")
