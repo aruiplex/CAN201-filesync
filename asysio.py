@@ -108,16 +108,10 @@ def merger(f: TextIOWrapper):
 
 
 class Package:
-    """build the header for Package
-    build a package, all data in package is bytes
+    """wrap the header and data into a package base on the format
+    1. class variables are headers;
+    2. class functions are constructors of header and body 
     """
-    # # header data
-    # method = b""
-    # filename = b""
-    # # package data
-    # header_length = 0
-    # body_length = 0
-    # header = b""
     body = bytearray(b"")
 
     def build(self, header: dict, body: str):
@@ -129,69 +123,58 @@ class Package:
 
     def __wrap(self, header: dict, body: bytes) -> bytes:
         """wrap the package
+        1. header: MUST BE DICT (str)
+        2. data: MUST BE BYTES
         """
-        header = str(header)
-        self.header = header.encode()
+        header = str(header).encode()
+        self.header = header
         self.body = body
         self.header_length = len(header)
         self.body_length = len(body)
         return struct.pack("!II", self.header_length, self.body_length) + self.header + self.body
-        # 另一种写 pack 的方法
-        # return self.header_length.to_bytes(
-        #     4, "big") + self.body_length.to_bytes(4, "big") + self.header + self.body
-
-    def __unwrap(self, store):
-        """已弃用
-        unwrap the package from store
-        """
-        self.header_length, self.body_length = struct.unpack(
-            "!II", store[:8])
-        self.header = store[8:8 + self.header_length]
-        self.header = eval(self.header.decode())
-        self.body = store[8 + self.header_length:8 +
-                          self.header_length + self.body_length]
-        store = store[8 + self.header_length + self.body_length:]
-        # if FIN is true, the finish
-        FIN = self.body_length == 0 and self.header_length == 0
-        return self, store, FIN
-
-    def alive(self):
-        self.method = "ALI".encode()
-        package = Package().__wrap(self.__dict__, "")
-        return package
 
     def send(self, filename: bytes, data: bytes):
-        self.method = "SED".encode()
+        self.method = "SED"
         self.filename = filename
         package = Package().__wrap(self.__dict__, data)
         return package
 
     def update(self, filename: bytes, start_index: int, data: bytes):
-        self.method = "UPT".encode()
+        self.method = "UPT"
         self.filename = filename
         self.start_index = start_index
         package = Package().__wrap(self.__dict__, data)
         return package
 
-    def sync(self):
-        self.method = "SYN".encode()
-        package = Package().__wrap(self.__dict__, "")
-        return package
-
     def delete(self, sync_file_set: set):
         """sync_file_list: List<SyncFile>
         """
-        self.method = "DEL".encode()
-        package = Package().__wrap(header=self.__dict__, body=str(sync_file_set).encode())
+        self.method = "DEL"
+        package = Package().__wrap(self.__dict__, str(sync_file_set).encode())
         return package
 
-    def request(self, filename: str, start_index: int):
+    def request(self, filename: bytes, start_index: int):
         """The request header of the breakpoint continuation, 
-        filename is the broken file, start_index is its last byte
+        1. filename is the broken file, 
+        2. start_index is its last byte
         """
-        self.method = "REQ".encode()
+        self.method = "REQ"
         self.filename = filename
         self.start_index = start_index
+        package = Package().__wrap(self.__dict__, b"")
+        return package
+
+    def alive(self):
+        """Deprecated
+        """
+        self.method = "ALI"
+        package = Package().__wrap(self.__dict__, "")
+        return package
+
+    def sync(self):
+        """Deprecated
+        """
+        self.method = "SYN"
         package = Package().__wrap(self.__dict__, "")
         return package
 
@@ -201,20 +184,21 @@ class Package:
 
 
 def data2file(f: TextIOWrapper, index, data: bytes):
-    """byte stream to file
+    """Deprecated
+    byte stream to file
     1. low level.
     2. base on directory to create file
     """
     part_size = cfg["file_block_size"]
     logger(f"write file", "asysio")
-    # TODO:
-    # os.makedirs(os.path.dirname(filename), exist_ok=True)
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     f.seek(index * part_size)
     f.write(data.decode())
 
 
 def file2data(data_file: TextIOWrapper, index: int) -> bytes:
-    """byte file to stream 
+    """Deprecated
+    byte file to stream 
     1. low level.
     2. base on directory to read file
     """
@@ -226,13 +210,15 @@ def file2data(data_file: TextIOWrapper, index: int) -> bytes:
 
 
 def compress(data: bytes) -> bytes:
-    """compress for files and folders
+    """Deprecated
+    compress for files and folders
     """
     return gzip.compress(data, cfg["compress_level"])
 
 
 def decompress(data: bytes) -> bytes:
-    """decompress for files and folders
+    """Deprecated
+    decompress for files and folders
     """
     return gzip.decompress(data)
 
@@ -252,32 +238,3 @@ def get_version(filename: str) -> bytes:
             # logger(version_bytes,"version_bytes: ")
             # logger(hashlib.md5(version_bytes).hexdigest(), f"partion_index: {partion_index}")
             version_bytes = bytearray(b"")
-
-
-def test1():
-    body_in = "hahahahahahaha"
-    a = Package()
-    package = a.send("helloworld.txt", body_in)
-    b = Package()
-    b.unwrap(package)
-    print(b.__dict__)
-
-
-def test3():
-    filename = "./share/hello_world"
-    sync_file = SyncFile(filename)
-    with open(file=filename, mode="rb") as f:
-        total = math.ceil(sync_file.size / cfg["file_block_size"])
-        print("total", total)
-        print(splitter(f, 14, 16))
-
-
-def test_get_version():
-    # get_version("./share/hello_world")
-    get_version("C:\\Users\\zcrbb\\Downloads\\ideaIU-2020.3.exe")
-
-
-if __name__ == "__main__":
-    # file_manager("./share/hello_world")
-    # time_consume(test_get_version)
-    test1()

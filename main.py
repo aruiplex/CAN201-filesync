@@ -35,11 +35,29 @@ signal.signal(signal.SIGINT, receive_signal)
 logger("Listening signal", "catch_signal")
 
 # 断点续传保护机制
-if db["transfering"] != "":
-    sync_file = asysfs.SyncFile(db["transfering"])
-    logger(f"starting continue transfer: {sync_file.name}", "Discontinued transmission")
-    package = asysio.Package().request(sync_file.name, sync_file.size)
-    asystp.send(package)
+
+
+def retransfer():
+    transfering_set = set(db["transfering"])
+    # nothing to retransfer
+    if len(transfering_set) == 0:
+        return
+
+    logger(f"retransfer files {transfering_set}", "retransfer")
+    for filename in transfering_set:
+        try:
+            sync_file = asysfs.SyncFile(filename)
+            logger(
+                f"starting continue transfer: {sync_file.name}", "Discontinued transmission")
+            package = asysio.Package().request(sync_file.name, sync_file.size)
+            asystp.send(package)
+        except FileNotFoundError:
+            logger(
+                f"starting continue transfer for a new file: {filename}", "Discontinued transmission")
+            package = asysio.Package().request(filename, 0)
+            asystp.send(package)
+    transfering_set.discard(filename)
+
 
 listener_threading.join()
 file_sys_threading.join()

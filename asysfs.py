@@ -52,7 +52,8 @@ def sync_files() -> tuple:
         file_obj = SyncFile(cur_file)
         for ori_file in db["sync_files"]:
             if file_obj.name == ori_file["name"]:
-                if file_obj.size != ori_file["size"] or file_obj.time != ori_file["time"]:
+                # 在时间不同但是size相同的情况下, 则是被认为文件被修改了
+                if file_obj.size == ori_file["size"] and file_obj.time != ori_file["time"]:
                     mod_files.add(file_obj.name)
 
     new_files = cur_files - ori_files - ign_files - rev_files
@@ -76,8 +77,6 @@ def update_db_file(new_files: set, deleted_files: set, mod_files: set):
     # original files dict
     sync_files = db["sync_files"]
     new_sync_files = []
-    # if mod_files:
-    #     sync_files = [x for x in sync_files if x["name"] not in mod_files]
 
     # if there has deleted files
     if deleted_files or mod_files:
@@ -106,16 +105,12 @@ def file_sys():
     while True:
         time.sleep(sync_interval)
         new_files, deleted_files, mod_files = sync_files()
-        # logger(new_files, "new_files")
-        # logger(deleted_files, "deleted_files")
-        # logger(mod_files, "mod_files")
-
         update_db_file(new_files, deleted_files, mod_files)
 
         if deleted_files:
             package = asysio.Package().delete(deleted_files)
             asystp.send(package)
-            logger("send DEL package", "file_sys")
+            logger(f"<DEL>{deleted_files}", "file_sys")
 
         if new_files:
             for new_file in new_files:
@@ -124,7 +119,7 @@ def file_sys():
                     data = f.read()
                     package = asysio.Package().send(new_file, data)
                     asystp.send(package)
-                    logger("send SED package", "file_sys")
+                    logger(f"<SED>{new_file} ", "file_sys")
 
         if mod_files:
             for mod_file in mod_files:
@@ -133,7 +128,7 @@ def file_sys():
                     package = asysio.Package().update(mod_file, 0, content)
                     asystp.send(package)
                     logger(
-                        f"send MOD package for file {mod_files}", "file_sys")
+                        f"<UPT>{mod_files}", "file_sys")
 
         # logger("update db", "file_sys")
         n += 1
@@ -169,9 +164,3 @@ class SyncFile():
 
     def __eq__(self, other):
         return self.name == other.name and self.time == other.time and self.size == other.size
-
-
-# if __name__ == "__main__":
-#     new_files, deleted_files, mod_files = sync_files()
-#     save_files_list(new_files, deleted_files, mod_files)
-#     print("mod: ",  mod_files)

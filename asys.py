@@ -1,14 +1,3 @@
-import signal
-import json
-import sys
-import argparse
-import threading
-import os
-import time
-import uuid
-from collections import defaultdict
-import hashlib
-
 """
 aruix sync system function
 
@@ -38,6 +27,16 @@ Global variables:
 cfg:    asys(aruix sync transfer protocol system) global config
 db:     persist info to database
 """
+import signal
+import json
+import sys
+import argparse
+import threading
+import os
+import time
+import uuid
+from collections import defaultdict
+import hashlib
 
 
 def get_file_md5(f, chunk_size=8192):
@@ -100,7 +99,7 @@ def pass_argument():
     if args.ip == None:
         logger("There are no ip input, use ip in config", "pass_arg")
     else:
-        cfg["ips"] =  [int(n) for n in args.ip.split(",")]
+        cfg["ips"] = [int(n) for n in args.ip.split(",")]
 
 
 def load_logo() -> str:
@@ -156,22 +155,16 @@ def init():
 stop_times = 0
 
 
-def receive_signal(signalNumber, frame):
+def receive_signal(signal_number, frame):
     import asysfs
     global stop_times
-    logger("Receive stop signal", "catch_signal")
 
     # 在退出前保存 db.json
-    # new_files, deleted_files, mod_files = asysfs.sync_files()
-    # asysfs.update_db_file(new_files, deleted_files, mod_files)
     asysfs.persist_db_file()
-    logger("Saved to db", "catch_signal")
+    logger(
+        f"Receive stop signal {signal_number} & Saved to db", "receive_signal")
 
     stop_times += 1
     if stop_times >= 2:
         logger("Bye  ヽ(*。>Д<)o゜", "Aruix Sync")
         sys.exit(0)
-
-
-# if __name__ == "__main__":
-#     pass_argument()
