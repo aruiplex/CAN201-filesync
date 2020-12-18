@@ -77,7 +77,7 @@ def update_db_file(new_files: set, deleted_files: set, mod_files: set):
     # origin receive files dict
     rev_files = set(db["recv_files"])
     # need to add into sync_files. this is local file.
-    new_sync_files = set()
+    new_sync_files = []
 
     # if there has deleted files or modified files
     # TODO: 这里可能会有接收文件方文件修改, 处理方案?
@@ -92,10 +92,10 @@ def update_db_file(new_files: set, deleted_files: set, mod_files: set):
     if new_files or mod_files:
         new_files.update(mod_files)
         for new_file in new_files:
-            new_sync_files.add(SyncFile(new_file).__dict__)
+            new_sync_files.extend(SyncFile(new_file).__dict__)
 
     # original files dict + current files to dict - deleted files in dict
-    sync_files = sync_files.union(new_sync_files)
+    sync_files.update(new_sync_files)
     db.update(sync_files=list(sync_files))
     db.update(rev_files=list(rev_files))
     # logger(sync_files, "sync_files")
