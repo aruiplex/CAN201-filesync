@@ -47,6 +47,7 @@ def sync_files() -> tuple:
 
     for cur_file in cur_files:
         file_obj = SyncFile(cur_file)
+        # TODO: 没考虑接收方文件修改的方案
         for ori_file in db["sync_files"]:
             if file_obj.name == ori_file["name"]:
                 # 在时间不同但是size相同的情况下, 则是被认为文件被修改了
@@ -66,31 +67,38 @@ def persist_db_file():
 
 
 def update_db_file(new_files: set, deleted_files: set, mod_files: set):
-    """update db dict
+    """update db dict in memory
     """
     global cfg, db
     if not new_files and not deleted_files and not mod_files:
         return
-    # original files dict
-    sync_files = db["sync_files"]
-    new_sync_files = []
+    # original local files dict
+    sync_files = set(db["sync_files"])
+    # origin receive files dict
+    rev_files = set(db["recv_files"])
+    # need to add into sync_files. this is local file.
+    new_sync_files = set()
 
-    # if there has deleted files
+    # if there has deleted files or modified files
+    # TODO: 这里可能会有接收文件方文件修改, 处理方案?
+    # 把修改过的文件的记录先删掉, 再赋予他一个新的记录
     if deleted_files or mod_files:
-        # minus deleted files in dict
         deleted_files.update(mod_files)
-        sync_files = [x for x in sync_files if x["name"] not in deleted_files]
+        # minus deleted files in dict
+        sync_files = {x for x in sync_files if x["name"] not in deleted_files}
+        rev_files = {x for x in rev_files if x not in deleted_files}
 
     # current files to dict
     if new_files or mod_files:
         new_files.update(mod_files)
         for new_file in new_files:
-            new_sync_files.append(SyncFile(new_file).__dict__)
+            new_sync_files.add(SyncFile(new_file).__dict__)
 
     # original files dict + current files to dict - deleted files in dict
-    sync_files = sync_files + new_sync_files
-    db.update(sync_files=sync_files)
-    logger(sync_files, "sync_files")
+    sync_files = sync_files.union(new_sync_files)
+    db.update(sync_files=list(sync_files))
+    db.update(rev_files=list(rev_files))
+    # logger(sync_files, "sync_files")
 
 
 def file_sys():
