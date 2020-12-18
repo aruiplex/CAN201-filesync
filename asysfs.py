@@ -23,8 +23,7 @@ check_files():
 
 
 def sync_files() -> tuple:
-    """
-    return new files and deleted files
+    """return new files and deleted files
     """
     # sync directory
     sync_dir = cfg["sync_dir"]
@@ -33,7 +32,7 @@ def sync_files() -> tuple:
     # current exist files
     cur_files = set()
     # past exist files
-    ori_files = set(db["sync_files"]).union(rev_files)
+    ori_files = set(db["sync_files"])
     # modified files
     mod_files = set()
     # ignored files
