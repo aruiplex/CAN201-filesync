@@ -49,6 +49,7 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     # 把正在传的文件记录一下, 文件锁
     transfering_set = set(db["transfering"])
     transfering_set.add(header["filename"])
+    db["transfering"] = transfering_set
     # converge list to set, aviod to repeat
     s = set(db["recv_files"])
     s.add(header["filename"])
