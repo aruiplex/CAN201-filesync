@@ -68,21 +68,6 @@ def load_config() -> dict:
 cfg = load_config()
 
 
-def load_db() -> dict:
-    """load database to sys
-    """
-    with open("db.json") as db_file:
-        db = json.load(db_file)
-        # get a uuid for this device
-        if db["device_id"] == "":
-            db.update(device_id=str(uuid.uuid4()))
-    return db
-
-
-# global database
-db = load_db()
-
-
 def pass_argument():
     """pass cli arguments to cfg
     1. ips,         default: config file
@@ -97,7 +82,7 @@ def pass_argument():
         '--ip', '-i', help='connection to IP addresses')
     args = parser.parse_args()
     if args.encryption == 'yes':
-        cfg["encryption"] = True
+        cfg["encryption"] = "True"
     if args.ip == None:
         logger("There are no ip input, use ip in config", "pass_arg")
     else:
@@ -157,14 +142,51 @@ def init():
 stop_times = 0
 
 
+class Database:
+
+    def __init__(self):
+        """load database to sys
+        """
+        with open(cfg["db_file"], "r") as db_file:
+            self.db = json.load(db_file)
+
+    # def set_db(self, key, value):
+    #     db[key] = value
+    #     if "name" in db["sync_files"]:
+    #         None
+
+    def presist_db(self):
+        """persist the list of file names to db
+        """
+        with open(cfg["db_file"], "w") as f:
+            logger("在写了在写了", "Database")
+            json.dump(self.db, f)
+
+    def __getitem__(self, index):
+        return self.db[index]
+
+    def __setitem__(self, key, value):
+        # if type(value)==str:
+        #     if "name" in value:
+        #         print("sucker")
+        # else:
+        #     if "name" in json.dumps(value):
+        #         pass
+        #         # assert False
+        self.db[key] = value
+
+
+db = Database()
+
+
 def receive_signal(signal_number, frame):
     import asysfs
     global stop_times
 
     # 在退出前保存 db.json
-    asysfs.persist_db_file()
+    db.presist_db()
     logger(
-        f"Receive stop signal {signal_number} & Saved to db", "receive_signal")
+        f"Saved to db", "receive_signal")
 
     stop_times += 1
     if stop_times >= 2:

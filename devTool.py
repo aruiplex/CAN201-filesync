@@ -47,6 +47,6 @@ def time_consume(function):
 
 
 if __name__ == "__main__":
-    print_test_data(1000,"|")
-    # create_test_file("./hello_world", "hello world!", times=10000)
+    # print_test_data(1000,"|")
+    create_test_file("./hello_world", "hello world!", times=10000)
     # create_test_file("./good_morning", "good morning\n")

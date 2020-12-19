@@ -10,6 +10,7 @@ import os
 import json
 from queue import Empty
 import asystp
+import gzip
 
 syn = []
 
@@ -39,6 +40,7 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     1. send, start_index=0
     2. update, start_index=header["start_index"]
     """
+    filename = header["filename"]
     notation = "<SED>"
     if start_index != 0:
         notation = "<UPT>"
@@ -54,6 +56,7 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     data_dump_threading = threading.Thread(
         target=data_dump, args=(header, q, stop, start_index), name=f"{threading.current_thread().name}-data_dump")
     data_dump_threading.start()
+    # 不停的收, 放到 queue 里面
     while True:
         receive_bytes = connection.recv(cfg["buffer_size"])
         if not receive_bytes:
@@ -61,9 +64,21 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
             break
         q.put(receive_bytes)
     # 解开文件锁
+    data_dump_threading.join()
+    # handle decompress
+    if filename.endswith(".temp"):
+        logger("handle decompress", "due_send")
+        with open(filename, "rb") as of:
+            with open(filename[:5], "wb") as f:
+                ori_data = of.read()
+                data = gzip.decompress(ori_data)
+                f.write(data)
+
     transfering_set.discard(header["filename"])
     db["transfering"] = list(transfering_set)
     logger(f"{notation} is finish", "due_send")
+    os.remove(filename)
+    logger(f"{filename} removed", "due_send")
 
 
 def due_request(header):

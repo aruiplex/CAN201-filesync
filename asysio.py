@@ -78,6 +78,8 @@ from asysfs import SyncFile
 import enum
 import math
 import hashlib
+# from crypto.Cipher import AES
+# import base64
 
 
 """
@@ -85,26 +87,29 @@ Methods = enum.Enum("SYN", "DEL", "ALI", "UPT", "SED", "REQ")
 """
 
 
-def file_manager(filename: str) -> bytes:
-    sync_file = SyncFile(filename)
-    # this total is total index
-    total = math.ceil(sync_file.size / cfg["file_block_size"])
-    with open(filename, mode="rb") as f:
-        for index in range(total):
-            splitter(f, index, total)
+def compress(new_file: str) -> str:
+    with open(new_file, "rb") as f:
+        logger("start compress", "compress")
+        ori_data = f.read()
+        compress_data = gzip.compress(ori_data, cfg["compress_level"])
+        temp_filename = new_file+".temp"
+        with open(temp_filename, "wb") as ft:
+            ft.write(compress_data)
+        return temp_filename
 
 
-def splitter(f: BinaryIO, index: int, total: int) -> bytes:
-    file_block_size = cfg["file_block_size"]
-    f.seek(index * file_block_size)
-    content = f.read(file_block_size)
-    return content
+# def encrypt(key, text):
+#     aes = AES.new(add_to_16(key), AES.MODE_ECB)  # 初始化加密器
+#     encrypt_aes = aes.encrypt(add_to_16(text))  # 先进行aes加密
+#     encrypted_text = str(base64.encodebytes(encrypt_aes),
+#                          encoding='utf-8')  # 执行加密并转码返回bytes
+#     return encrypted_text
 
 
-def merger(f: TextIOWrapper):
-    pass
-
-# 这个版本的类是 里面的所有信息都是 bytes
+# def add_to_16(value):
+#     while len(value) % 16 != 0:
+#         value += '\0'
+#     return str.encode(value)  # 返回bytes
 
 
 class Package:
@@ -181,60 +186,3 @@ class Package:
     # def finish(self):
     #     package = Package().__wrap("", "")
     #     return package
-
-
-def data2file(f: TextIOWrapper, index, data: bytes):
-    """Deprecated
-    byte stream to file
-    1. low level.
-    2. base on directory to create file
-    """
-    part_size = cfg["file_block_size"]
-    logger(f"write file", "asysio")
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    f.seek(index * part_size)
-    f.write(data.decode())
-
-
-def file2data(data_file: TextIOWrapper, index: int) -> bytes:
-    """Deprecated
-    byte file to stream 
-    1. low level.
-    2. base on directory to read file
-    """
-    part_size = cfg["file_block_size"]
-    position = index * part_size
-    data_file.seek(position)
-    logger(f"read part <{index}> into bytes", "asysio")
-    return data_file.read(part_size)
-
-
-def compress(data: bytes) -> bytes:
-    """Deprecated
-    compress for files and folders
-    """
-    return gzip.compress(data, cfg["compress_level"])
-
-
-def decompress(data: bytes) -> bytes:
-    """Deprecated
-    decompress for files and folders
-    """
-    return gzip.decompress(data)
-
-
-def get_version(filename: str) -> bytes:
-    # block_size = cfg["file_block_size"]
-    block_size = 1024*1024
-    sync_file = SyncFile(filename)
-    total = math.ceil(sync_file.size/block_size)
-    version_bytes = bytearray(b"")
-    with open(filename, "rb") as f:
-        for partion_index in range(total):
-            base_index = partion_index*block_size
-            for i in range(0, block_size, 1024):
-                f.seek(base_index + i)
-                version_bytes.extend(f.read(1))
-            # logger(version_bytes,"version_bytes: ")
-            # logger(hashlib.md5(version_bytes).hexdigest(), f"partion_index: {partion_index}")
-            version_bytes = bytearray(b"")
