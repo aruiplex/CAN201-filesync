@@ -151,13 +151,6 @@ class Package:
         package = Package().__wrap(self.__dict__, data)
         return package
 
-    def delete(self, sync_file_set: set):
-        """sync_file_list: List<SyncFile>
-        """
-        self.method = "DEL"
-        package = Package().__wrap(self.__dict__, str(sync_file_set).encode())
-        return package
-
     def request(self, filename: bytes, start_index: int):
         """The request header of the breakpoint continuation, 
         1. filename is the broken file, 

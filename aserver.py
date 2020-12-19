@@ -96,22 +96,6 @@ def due_request(header):
         logger(f"<REQ>{filename} is update", "due_request")
 
 
-def due_delete(connection, header, q):
-    logger(f"<DEL>: {header}", 'due_delete')
-    while True:
-        receive_bytes = connection.recv(cfg["buffer_size"])
-        if not receive_bytes:
-            break
-        q.put(receive_bytes)
-    del_file_set = eval(q.get())
-    logger(f"{del_file_set}", "due_delete")
-    for del_file in del_file_set:
-        try:
-            os.remove(del_file)
-        except FileNotFoundError:
-            logger(f"{del_file} is not found", "due_delete")
-
-
 def receiver(connection: socket):
     """receiver due with the message 
     """
@@ -145,9 +129,6 @@ def receiver(connection: socket):
 
         if header["method"] == "REQ":
             due_request(header)
-
-        if header["method"] == "DEL":
-            due_delete(connection, header, q)
 
 
 def data_dump(header, q: queue.Queue, stop, start_index=0):

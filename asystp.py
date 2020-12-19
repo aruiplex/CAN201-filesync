@@ -88,26 +88,3 @@ def __send_to_peer(s: socket, host: str, port: int, package):
     s.close()
     logger("File send finish","sender")
 
-
-def send_signal():
-    filename = "./share/hello_world"
-    with open(filename, "rb") as f:
-        data = f.read()
-        send(asysio.Package().send(filename, data))
-
-
-def del_signal():
-    del_file_set = {"./share/hello_world"}
-    print(del_file_set)
-    send(asysio.Package().delete(del_file_set))
-
-
-def upt_signal():
-    with open("test.data", 'r') as f:
-        data = f.read()
-    package = asysio.Package().update("./share/hello_world", 10, data)
-    send(package)
-
-
-if __name__ == "__main__":
-    upt_signal()

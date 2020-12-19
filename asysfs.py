@@ -66,18 +66,17 @@ def sync_files() -> tuple:
                 mod_files.add(sync_obj["name"])
 
     new_files = cur_files - ori_files - ign_files
-    deleted_files = ori_files - cur_files
-    update_db_file(new_files, deleted_files, mod_files)
-    return new_files, deleted_files, mod_files
+    update_db_file(new_files, mod_files)
+    return new_files, mod_files
 
 
-def update_db_file(new_files: set, deleted_files: set, mod_files: set):
+def update_db_file(new_files: set, mod_files: set):
     """update db dict in memory
     1. 从列表中移除删掉和更新的文件
     2. 添加上更新的文件
     """
     global cfg, db
-    if not new_files and not deleted_files and not mod_files:
+    if not new_files and not mod_files:
         return
     # original local files dict
     sync_files = db["sync_files"]
@@ -88,11 +87,10 @@ def update_db_file(new_files: set, deleted_files: set, mod_files: set):
 
     # if there has deleted files or modified files
     # 把修改过的文件的记录先删掉, 再赋予他一个新的记录
-    if deleted_files or mod_files:
-        deleted_files.update(mod_files)
+    if mod_files:
         # minus deleted files in dict
-        sync_files = [x for x in sync_files if x["name"] not in deleted_files]
-        rev_files = [x for x in rev_files if x not in deleted_files]
+        sync_files = [x for x in sync_files if x["name"] not in mod_files]
+        rev_files = [x for x in rev_files if x not in mod_files]
 
     # current files to dict
     if new_files or mod_files:
@@ -121,13 +119,8 @@ def file_sys():
             db.presist_db()
             n = 0
 
-        new_files, deleted_files, mod_files = sync_files()
-        update_db_file(new_files, deleted_files, mod_files)
-
-        if deleted_files:
-            package = asysio.Package().delete(deleted_files)
-            asystp.send(package)
-            logger(f"<DEL>{deleted_files}", "file_sys")
+        new_files, mod_files = sync_files()
+        update_db_file(new_files, mod_files)
 
         if new_files:
             logger(new_files, "new_files")
@@ -182,10 +175,3 @@ class SyncFile():
         return self.name == other.name and self.time == other.time and self.size == other.size
 
 
-if __name__ == "__main__":
-    while True:
-        time.sleep(1)
-        a, b, c = sync_files()
-        content = "new_files, deleted_files, mod_files: " + \
-            str(a) + str(b) + str(c)
-        print(content)
