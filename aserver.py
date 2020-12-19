@@ -73,12 +73,13 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
                 ori_data = of.read()
                 data = gzip.decompress(ori_data)
                 f.write(data)
+        os.remove(filename)
+        logger(f"{filename} removed", "due_send")
 
     transfering_set.discard(header["filename"])
     db["transfering"] = list(transfering_set)
     logger(f"{notation} is finish", "due_send")
-    os.remove(filename)
-    logger(f"{filename} removed", "due_send")
+
 
 
 def due_request(header):
