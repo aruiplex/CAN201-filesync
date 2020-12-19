@@ -69,9 +69,10 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     if filename.endswith(".temp"):
         logger("handle decompress", "due_send")
         with open(filename, "rb") as of:
-            with open(filename[:5], "wb") as f:
+            with open(filename[:-5], "wb") as f:
                 ori_data = of.read()
                 data = gzip.decompress(ori_data)
+                logger("decompressing", "decompress")
                 f.write(data)
         os.remove(filename)
         logger(f"{filename} removed", "due_send")
@@ -79,7 +80,6 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     transfering_set.discard(header["filename"])
     db["transfering"] = list(transfering_set)
     logger(f"{notation} is finish", "due_send")
-
 
 
 def due_request(header):
