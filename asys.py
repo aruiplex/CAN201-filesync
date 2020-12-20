@@ -82,7 +82,10 @@ def pass_argument():
         '--ip', '-i', help='connection to IP addresses')
     args = parser.parse_args()
     if args.encryption == 'yes':
+        logger("open encryption", "encryption")
         cfg["encryption"] = "True"
+    else:
+        cfg["encryption"] = "False"
     if args.ip == None:
         logger("There are no ip input, use ip in config", "pass_arg")
     else:
@@ -144,6 +147,7 @@ stop_times = 0
 
 
 class Database:
+    mutex = threading.Lock()
 
     def __init__(self):
         """load database to sys
@@ -169,14 +173,9 @@ class Database:
     def __setitem__(self, key, value):
         if type(value) == set:
             value = list(value)
-        # if type(value)==str:
-        #     if "name" in value:
-        #         print("sucker")
-        # else:
-        #     if "name" in json.dumps(value):
-        #         pass
-        #         # assert False
+        self.mutex.acquire()
         self.db[key] = value
+        self.mutex.release()
 
 
 db = Database()

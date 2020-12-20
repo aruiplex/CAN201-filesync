@@ -25,8 +25,7 @@ def listener() -> socket:
         # s.bind((host, port))
         s.bind(("", port))
         s.listen(6)
-        # logger(f"Server is listening on ATP://{host}:{port} <{n}>", "listener")
-        logger(f"Server is listening on ATP://127.0.0.1:{port} <{n}>", "listener")
+        logger(f"Server is listening on ATP://127.0.0.1:{port}", "listener")
         while len(syn) == 0:
             connection, addr = s.accept()
             logger(f"<{n}> Connected by {addr}", "listener")
@@ -62,23 +61,15 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     # 不停的收, 放到 queue 里面
     while True:
         receive_bytes = connection.recv(cfg["buffer_size"])
+        q.put(receive_bytes)
         if not receive_bytes:
             stop.append(1)
             break
-        q.put(receive_bytes)
     # 解开文件锁
     data_dump_threading.join()
     # handle decompress
     if filename.endswith(".temp"):
-        logger("handle decompress", "due_send")
-        with open(filename, "rb") as of:
-            with open(filename[:-5], "wb") as f:
-                ori_data = of.read()
-                data = gzip.decompress(ori_data)
-                logger("decompressing", "decompress")
-                f.write(data)
-        os.remove(filename)
-        logger(f"{filename} removed", "due_send")
+        asysio.decompress(filename)
 
     transfering_set.discard(header["filename"])
     db["transfering"] = list(transfering_set)
@@ -88,7 +79,7 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
 def due_request(header):
     filename = header["filename"]
     logger(f"rec<REQ>{header}", 'due_request')
-    if filename not in db["sync_files"]:
+    if filename in db["recv_files"]:
         logger(f"rec<REQ>{filename} is received file.", "due_request")
         return
     with open(filename, "r+b") as f:
@@ -159,4 +150,14 @@ def data_dump(header, q: queue.Queue, stop, start_index=0):
                 continue
             except Exception:
                 logger(f"Some error appearance: {Exception}.", "data_dump")
+
+    if cfg["encryption"] == "True":
+        logger("decryptoing", "due_send")
+        ori_data = b""
+        with open(filename, 'r+b') as f:
+            ori_data = f.read()
+        with open(filename, "wb") as f:
+            data = asysio.decrypt(cfg["key"], ori_data)
+            f.write(data)
+
     logger(f"{filename} finish write in.", "data_dump")

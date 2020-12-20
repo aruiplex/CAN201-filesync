@@ -78,8 +78,8 @@ from asysfs import SyncFile
 import enum
 import math
 import hashlib
-# from crypto.Cipher import AES
-# import base64
+from Crypto.Cipher import AES
+import base64
 
 
 """
@@ -88,28 +88,67 @@ Methods = enum.Enum("SYN", "DEL", "ALI", "UPT", "SED", "REQ")
 
 
 def compress(new_file: str) -> str:
+    """ 
+    open the original file and create a new compressed file
+    """
     with open(new_file, "rb") as f:
         logger("start compress", "compress")
         ori_data = f.read()
-        compress_data = gzip.compress(ori_data, cfg["compress_level"])
-        temp_filename = new_file+".temp"
-        with open(temp_filename, "wb") as ft:
-            ft.write(compress_data)
-        return temp_filename
+
+    compress_data = gzip.compress(ori_data, cfg["compress_level"])
+    temp_filename = new_file+".temp"
+    # write down protect, avoid file system track
+    recv_files = set(db["recv_files"])
+    recv_files.add(temp_filename)
+    db["recv_files"] = recv_files
+
+    with open(temp_filename, "wb") as ft:
+        ft.write(compress_data)
+
+    return temp_filename
 
 
-# def encrypt(key, text):
-#     aes = AES.new(add_to_16(key), AES.MODE_ECB)  # 初始化加密器
-#     encrypt_aes = aes.encrypt(add_to_16(text))  # 先进行aes加密
-#     encrypted_text = str(base64.encodebytes(encrypt_aes),
-#                          encoding='utf-8')  # 执行加密并转码返回bytes
-#     return encrypted_text
+def decompress(filename):
+    real_name = filename[:-5]
+    logger("handle decompress", "due_send")
+    recv_files = set(db["recv_files"])
+    recv_files.add(real_name)
+    db["recv_files"] = recv_files
+
+    ori_data = b""
+    with open(filename, "rb") as of:
+        ori_data = of.read()
+
+    with open(real_name, "wb") as f:
+        data = gzip.decompress(ori_data)
+        logger("decompressing", "decompress")
+        f.write(data)
+
+    os.remove(filename)
+    logger(f"{filename} removed", "due_send")
 
 
-# def add_to_16(value):
-#     while len(value) % 16 != 0:
-#         value += '\0'
-#     return str.encode(value)  # 返回bytes
+# 需要补位，str不是16的倍数那就补足为16的倍数
+def add_to_16(value: bytes):
+    while len(value) % 16 != 0:
+        value += (b'\0')
+    return value
+
+# 加密方法
+
+
+def encrypt(key: str, text: bytes):
+    aes = AES.new(add_to_16(key.encode()), AES.MODE_ECB)  # 初始化加密器
+    encrypt_aes = aes.encrypt(add_to_16(text))  # 先进行aes加密
+    return encrypt_aes
+
+# 解密方法
+
+
+def decrypt(key: str, text: bytes):
+    aes = AES.new(add_to_16(key.encode()), AES.MODE_ECB)  # 初始化加密器
+    decrypted_text = aes.decrypt(text).replace(b'\0', b'')  # 执行解密密并转码返回str
+    return decrypted_text
 
 
 class Package:

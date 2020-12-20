@@ -30,7 +30,7 @@ def sync_files() -> tuple:
     sync_objs = db["sync_files"]
     # receive files
     # receive 的 set 是之有文件名的 set
-    rev_files = set(db["recv_files"])
+    recv_files = set(db["recv_files"])
     # current exist files
     cur_files = set()
     # past exist files
@@ -48,7 +48,7 @@ def sync_files() -> tuple:
         sync_files.add(i["name"])
 
     # 原来的所有文件 = 接收到的所有文件 + 本地的所有文件
-    ori_files.update(rev_files)
+    ori_files.update(recv_files)
     ori_files.update(sync_files)
 
     # 得到现有的所有文件, 添加到 cur_files 中
@@ -57,24 +57,24 @@ def sync_files() -> tuple:
             # add path at the start of filename
             cur_file = os.path.join(root, cur_file)
             cur_files.add(cur_file)
-            # logger(cur_files, "debug_cur_files")
 
     # 得到修改的文件的文件名
     for sync_obj in sync_objs:
         for cur_file in cur_files:
             try:
                 cur_obj = SyncFile(cur_file)
-                if sync_obj["name"] == cur_obj.name and sync_obj["time"] != cur_obj.time or sync_obj["size"] != cur_obj.size:
-                    mod_files.add(sync_obj["name"])
+                if sync_obj["name"] == cur_obj.name:
+                    if sync_obj["time"] != cur_obj.time or sync_obj["size"] != cur_obj.size:
+                        mod_files.add(sync_obj["name"])
             except FileNotFoundError:
                 logger(f"this file {cur_obj.name} not exist", "SyncFile")
 
-    new_files = cur_files - ori_files - ign_files
-    update_db_file(new_files, mod_files)
+    new_files = cur_files - ori_files - ign_files - mod_files
+    __update_db_file(new_files, mod_files)
     return new_files, mod_files
 
 
-def update_db_file(new_files: set, mod_files: set):
+def __update_db_file(new_files: set, mod_files: set):
     """update db dict in memory
     1. 从列表中移除删掉和更新的文件
     2. 添加上更新的文件
@@ -95,10 +95,11 @@ def update_db_file(new_files: set, mod_files: set):
         # minus deleted files in dict
         sync_files = [x for x in sync_files if x["name"] not in mod_files]
         recv_files = [x for x in recv_files if x not in mod_files]
+        for mod_file in mod_files:
+            new_sync_files.append(SyncFile(mod_file).__dict__)
 
     # current files to dict
-    if new_files or mod_files:
-        new_files.update(mod_files)
+    if new_files:
         for new_file in new_files:
             new_sync_files.append(SyncFile(new_file).__dict__)
 
@@ -132,16 +133,18 @@ def file_sys():
                 # 文件大于 250M
                 if sync_file.size >= 250*1024*1024:
                     new_file = asysio.compress(new_file)
-                else:
-                    logger(new_file, "file_sys")
-                    with open(new_file, "rb") as f:
-                        data = f.read()
-                        if cfg["encryption"] == "True":
-                            logger("encryption", "file_sys")
-                            data = asysio.encrypt(cfg["key"], data)
-                        package = asysio.Package().send(new_file, data)
-                        asystp.send(package)
-                        logger(f"<SED>{new_file} ", "file_sys")
+
+                logger(new_file, "file_sys")
+
+                with open(new_file, "rb") as f:
+                    data = f.read()
+
+                if cfg["encryption"] == "True":
+                    logger("encryption", "file_sys")
+                    data = asysio.encrypt(cfg["key"], data)
+                package = asysio.Package().send(new_file, data)
+                asystp.send(package)
+                logger(f"<SED>{new_file} ", "file_sys")
 
         if mod_files:
             logger(mod_files, "mod_files")
@@ -178,3 +181,19 @@ class SyncFile():
     def __eq__(self, other):
         return self.name == other.name and self.time == other.time and self.size == other.size
 
+
+# if __name__ == "__main__":
+#     while True:
+#         logger(5)
+#         time.sleep(1)
+#         logger(4)
+#         time.sleep(1)
+#         logger(3)
+#         time.sleep(1)
+#         logger(2)
+#         time.sleep(1)
+#         logger(1)
+#         time.sleep(1)
+#         logger("start")
+#         new_files, mod_files = sync_files()
+#         logger(f"{new_files}, {mod_files}", "new_files, mod_files")
