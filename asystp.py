@@ -60,14 +60,16 @@ def retransfer():
             package = asysio.Package().request(filename, 0)
             send(package)
     transfering_set.discard(filename)
+    db["transfering"] = transfering_set
 
 
 def send(package):
-    # host = cfg["server"]["host"]
-    # port = cfg["server"]["port"]
-    host = "127.0.0.1"
-    ports = cfg["ips"]
-    for port in ports:
+    # host = "127.0.0.1"
+    hosts = cfg["ips"]
+    logger(hosts, "hosts")
+    port = int(cfg["port"])
+    logger(port, "port")
+    for host in hosts:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         send_to_peer_threading = threading.Thread(target=__send_to_peer,
                                                   args=(s, host, port, package), name="send_to_peer")
@@ -86,5 +88,4 @@ def __send_to_peer(s: socket, host: str, port: int, package):
             break
     s.send(package)
     s.close()
-    logger("File send finish","sender")
-
+    logger("File send finish", "sender")

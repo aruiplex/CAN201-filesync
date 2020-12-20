@@ -86,7 +86,8 @@ def pass_argument():
     if args.ip == None:
         logger("There are no ip input, use ip in config", "pass_arg")
     else:
-        cfg["ips"] = [int(n) for n in args.ip.split(",")]
+        # cfg["ips"] = [int(n) for n in args.ip.split(",")]
+        cfg["ips"] = args.ip.split(",")
 
 
 def load_logo() -> str:
@@ -159,13 +160,15 @@ class Database:
         """persist the list of file names to db
         """
         with open(cfg["db_file"], "w") as f:
-            logger("在写了在写了", "Database")
+            logger("database dump", "Database")
             json.dump(self.db, f)
 
     def __getitem__(self, index):
         return self.db[index]
 
     def __setitem__(self, key, value):
+        if type(value) == set:
+            value = list(value)
         # if type(value)==str:
         #     if "name" in value:
         #         print("sucker")

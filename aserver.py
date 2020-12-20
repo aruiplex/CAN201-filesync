@@ -19,12 +19,14 @@ def listener() -> socket:
     """listen on the port and pass the connect socket to the receiver
     """
     n = 1
-    host = cfg["server"]["host"]
+    # host = cfg["server"]["host"]
     port = cfg["server"]["port"]
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((host, port))
-        s.listen()
-        logger(f"Server is listening on ATP://{host}:{port} <{n}>", "listener")
+        # s.bind((host, port))
+        s.bind(("", port))
+        s.listen(6)
+        # logger(f"Server is listening on ATP://{host}:{port} <{n}>", "listener")
+        logger(f"Server is listening on ATP://127.0.0.1:{port} <{n}>", "listener")
         while len(syn) == 0:
             connection, addr = s.accept()
             logger(f"<{n}> Connected by {addr}", "listener")
@@ -41,9 +43,9 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     2. update, start_index=header["start_index"]
     """
     filename = header["filename"]
-    notation = "<SED>"
+    notation = "rec<SED>"
     if start_index != 0:
-        notation = "<UPT>"
+        notation = "rec<UPT>"
     logger(f"{notation}{header}", 'due_send')
     stop = []
     # 把正在传的文件记录一下, 文件锁
@@ -55,7 +57,7 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     s.add(header["filename"])
     db["recv_files"] = list(s)
     data_dump_threading = threading.Thread(
-        target=data_dump, args=(header, q, stop, start_index), name=f"{threading.current_thread().name}-data_dump")
+        target=data_dump, args=(header, q, stop, start_index), name=f"{threading.current_thread().name}-dump")
     data_dump_threading.start()
     # 不停的收, 放到 queue 里面
     while True:
@@ -85,9 +87,9 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
 
 def due_request(header):
     filename = header["filename"]
-    logger(f"<REQ>{header}", 'due_request')
+    logger(f"rec<REQ>{header}", 'due_request')
     if filename not in db["sync_files"]:
-        logger(f"<REQ>{filename} is received file.", "due_request")
+        logger(f"rec<REQ>{filename} is received file.", "due_request")
         return
     with open(filename, "r+b") as f:
         start_index = header["start_index"]
@@ -95,7 +97,7 @@ def due_request(header):
         data = f.read()
         package = asysio.Package().update(filename, start_index, data)
         asystp.send(package)
-        logger(f"<REQ>{filename} is update", "due_request")
+        logger(f"rec<REQ>{filename} is update", "due_request")
 
 
 def receiver(connection: socket):
@@ -116,10 +118,10 @@ def receiver(connection: socket):
         q.put(store[8 + header_length:])
 
         if header["method"] == "SYN":
-            logger(f"<SYN>{header}", 'receiver')
+            logger(f"rec<SYN>{header}", 'receiver')
 
         if header["method"] == "FIN":
-            logger(f"<FIN>{header}", 'receiver')
+            logger(f"rec<FIN>{header}", 'receiver')
             syn.append("FINISH")
 
         if header["method"] == "SED":

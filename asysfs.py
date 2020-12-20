@@ -52,18 +52,22 @@ def sync_files() -> tuple:
     ori_files.update(sync_files)
 
     # 得到现有的所有文件, 添加到 cur_files 中
-    for root, dirs, files in os.walk(cfg["sync_dir"]):
+    for root, dirs, files in os.walk(cfg["sync_dir"], followlinks=True):
         for cur_file in files:
             # add path at the start of filename
             cur_file = os.path.join(root, cur_file)
             cur_files.add(cur_file)
+            # logger(cur_files, "debug_cur_files")
 
     # 得到修改的文件的文件名
     for sync_obj in sync_objs:
         for cur_file in cur_files:
-            cur_obj = SyncFile(cur_file)
-            if sync_obj["name"] == cur_obj.name and sync_obj["time"] == cur_obj.time and sync_obj["size"] != cur_obj.size:
-                mod_files.add(sync_obj["name"])
+            try:
+                cur_obj = SyncFile(cur_file)
+                if sync_obj["name"] == cur_obj.name and sync_obj["time"] != cur_obj.time or sync_obj["size"] != cur_obj.size:
+                    mod_files.add(sync_obj["name"])
+            except FileNotFoundError:
+                logger(f"this file {cur_obj.name} not exist", "SyncFile")
 
     new_files = cur_files - ori_files - ign_files
     update_db_file(new_files, mod_files)
@@ -81,7 +85,7 @@ def update_db_file(new_files: set, mod_files: set):
     # original local files dict
     sync_files = db["sync_files"]
     # origin receive files dict
-    rev_files = set(db["recv_files"])
+    recv_files = set(db["recv_files"])
     # need to add into sync_files. this is local file.
     new_sync_files = []
 
@@ -90,7 +94,7 @@ def update_db_file(new_files: set, mod_files: set):
     if mod_files:
         # minus deleted files in dict
         sync_files = [x for x in sync_files if x["name"] not in mod_files]
-        rev_files = [x for x in rev_files if x not in mod_files]
+        recv_files = [x for x in recv_files if x not in mod_files]
 
     # current files to dict
     if new_files or mod_files:
@@ -101,7 +105,7 @@ def update_db_file(new_files: set, mod_files: set):
     # original files dict + current files to dict - deleted files in dict
     sync_files.extend(new_sync_files)
     db["sync_files"] = list(sync_files)
-    db["rev_files"] = list(rev_files)
+    db["recv_files"] = list(recv_files)
 
 
 def file_sys():
@@ -120,7 +124,6 @@ def file_sys():
             n = 0
 
         new_files, mod_files = sync_files()
-        update_db_file(new_files, mod_files)
 
         if new_files:
             logger(new_files, "new_files")
@@ -141,6 +144,7 @@ def file_sys():
                         logger(f"<SED>{new_file} ", "file_sys")
 
         if mod_files:
+            logger(mod_files, "mod_files")
             for mod_file in mod_files:
                 with open(mod_file, "rb") as f:
                     content = f.read(300*1024)
@@ -173,5 +177,4 @@ class SyncFile():
 
     def __eq__(self, other):
         return self.name == other.name and self.time == other.time and self.size == other.size
-
 

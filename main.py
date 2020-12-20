@@ -13,7 +13,7 @@ print(load_logo())
 
 init()
 
-print("|时间| [线程名]\t[函数名]\t[操作]".expandtabs(27))
+print("|Time| [ThreadName]\t[FunctionName]\t[Operation]".expandtabs(30))
 
 # pass arguments
 pass_argument()
@@ -39,4 +39,4 @@ logger("System has been initialized", "asys")
 
 listener_threading.join()
 file_sys_threading.join()
-logger("Bye  ヽ(*。>Д<)o゜", "Aruix Sync")
+logger("Bye", "Aruix Sync")
