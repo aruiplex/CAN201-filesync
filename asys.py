@@ -115,34 +115,27 @@ def init():
                     "port": 20000
                 },
                 "db_file": "db.json",
-                "sync_interval": 2,
-                "buffer_size": 8,
+                "logo_file": "aruixsync.logo",
+                "sync_interval": 1,
+                "buffer_size": 10240,
                 "compress_level": 6,
-                "encryption": False,
+                "encryption": "False",
                 "ips": [],
-                "sync_dir": "./share"
+                "port": 20000,
+                "file_block_size": 1024,
+                "sync_dir": "./share",
+                "key": "This is key",
+                "db_update_persist_ratio": 4
             }
+
             f.write(cfg_new)
 
     db_file = cfg["db_file"]
 
     if not os.path.isfile(db_file):
-        with open("db.json", "w") as f:
-            cfg_new = {
-                "sys_files": [
-                    "./asysfs.py",
-                    "./asysio.py",
-                    "./asystp.py",
-                    "./asys.py",
-                    "./config.json",
-                    "./db.json",
-                    "./devTool.py",
-                    "./main.py",
-                    "./__pycache__"
-                ],
-                "ignore": [],
-                "sync_files": []
-            }
+        with open(db_file, "w") as f:
+            cfg_new = {"ignore": [], "sync_files": [],
+                       "transfering": [], "recv_files": []}
             f.write(cfg_new)
 
 
