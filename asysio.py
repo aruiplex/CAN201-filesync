@@ -37,23 +37,21 @@ spliter(file: str, index: int) -> bytes
 +------------------+--------------------------  
 
 ATP: aruix transfer protocol
-+------+--------------------------+----------------------------------------------------------------+
-| code |       method             |                     description                                |
-+------+--------------------------+----------------------------------------------------------------+
-|  0?  |        ALI               |  send alive message to check peer get ready to perform action  |
-|  1   |        SYN               |  send sync message to identify which file to sync              |
-|  2   |        REQ               |  send request message to get messing file                      |
-|  3   |        SED               |  send send message to send a whole file                        |
-|  4   |        UPT               |  send update message to send a part of whole file              |
-|  5   |        DEL               |  send delete messafe to delete a file                          |
-+------+--------------------------+----------------------------------------------------------------+
++------+-------------------+----------------------------------------------------------------+
+| code |       method      |                     description                                |
++------+-------------------+----------------------------------------------------------------+
+|  1   |        REQ        |  send request message to get messing file                      |
+|  2   |        SED        |  send send message to send a whole file                        |
+|  3   |        UPT        |  send update message to send a part of whole file              |
+|  4   |        DEL        |  send delete messafe to delete a file                          |
++------+-------------------+----------------------------------------------------------------+
 
 ATP package header: 
  
 |--8Bytes-|
-+----+----+------+----+
-|1234|5678|header|body|
-+----+----+------+----+
++----+----+------------+------------------------------------+
+|1234|5678|   header   |                 body               |
++----+----+------------+------------------------------------+
 |    |
 |    +body_length
 +header_length
@@ -62,8 +60,8 @@ header fields:
 (* is must)
 1. *methods;
 2. filename;
-3. index;
-4. total;
+3. start index;
+
 
 """
 import os

@@ -104,6 +104,9 @@ def init():
     """
     判读是否有share文件夹.
     """
+    if not os.path.isdir("./share"):
+        os.mkdir("./share")
+
     if not os.path.isfile("config.json"):
         with open("config.json", "w") as f:
             cfg_new = {
@@ -192,5 +195,5 @@ def receive_signal(signal_number, frame):
 
     stop_times += 1
     if stop_times >= 2:
-        logger("Bye  ヽ(*。>Д<)o゜", "Aruix Sync")
+        logger("Bye", "Aruix Sync")
         sys.exit(0)
