@@ -126,26 +126,21 @@ def decompress(filename):
     logger(f"{filename} removed", "due_send")
 
 
-# 需要补位，str不是16的倍数那就补足为16的倍数
 def add_to_16(value: bytes):
     while len(value) % 16 != 0:
         value += (b'\0')
     return value
 
-# 加密方法
-
 
 def encrypt(key: str, text: bytes):
-    aes = AES.new(add_to_16(key.encode()), AES.MODE_ECB)  # 初始化加密器
-    encrypt_aes = aes.encrypt(add_to_16(text))  # 先进行aes加密
+    aes = AES.new(add_to_16(key.encode()), AES.MODE_ECB)
+    encrypt_aes = aes.encrypt(add_to_16(text))
     return encrypt_aes
-
-# 解密方法
 
 
 def decrypt(key: str, text: bytes):
-    aes = AES.new(add_to_16(key.encode()), AES.MODE_ECB)  # 初始化加密器
-    decrypted_text = aes.decrypt(text).replace(b'\0', b'')  # 执行解密密并转码返回str
+    aes = AES.new(add_to_16(key.encode()), AES.MODE_ECB)
+    decrypted_text = aes.decrypt(text).replace(b'\0', b'')
     return decrypted_text
 
 
@@ -212,7 +207,3 @@ class Package:
         self.method = "SYN"
         package = Package().__wrap(self.__dict__, "")
         return package
-
-    # def finish(self):
-    #     package = Package().__wrap("", "")
-    #     return package

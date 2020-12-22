@@ -64,7 +64,6 @@ def retransfer():
 
 
 def send(package):
-    # host = "127.0.0.1"
     hosts = cfg["ips"]
     logger(hosts, "hosts")
     port = int(cfg["port"])

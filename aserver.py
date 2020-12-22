@@ -19,10 +19,8 @@ def listener() -> socket:
     """listen on the port and pass the connect socket to the receiver
     """
     n = 1
-    # host = cfg["server"]["host"]
     port = cfg["server"]["port"]
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        # s.bind((host, port))
         s.bind(("", port))
         s.listen(6)
         logger(f"Server is listening on ATP://127.0.0.1:{port}", "listener")
@@ -47,7 +45,7 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
         notation = "rec<UPT>"
     logger(f"{notation}{header}", 'due_send')
     stop = []
-    # 把正在传的文件记录一下, 文件锁
+    # Record the file being transferred, file lock
     transfering_set = set(db["transfering"])
     transfering_set.add(header["filename"])
     db["transfering"] = transfering_set
@@ -58,14 +56,14 @@ def due_send(connection: socket, header: dict, q: queue, start_index=0):
     data_dump_threading = threading.Thread(
         target=data_dump, args=(header, q, stop, start_index), name=f"{threading.current_thread().name}-dump")
     data_dump_threading.start()
-    # 不停的收, 放到 queue 里面
+    # Keep receiving, put in the queue
     while True:
         receive_bytes = connection.recv(cfg["buffer_size"])
         q.put(receive_bytes)
         if not receive_bytes:
             stop.append(1)
             break
-    # 解开文件锁
+    # Unlock file lock
     data_dump_threading.join()
     # handle decompress
     if filename.endswith(".temp"):

@@ -31,7 +31,7 @@ logger("file system start", "file_sys")
 signal.signal(signal.SIGINT, receive_signal)
 logger("Listening signal", "catch_signal")
 
-# 断点续传保护机制
+# Breakpoint Resume Protection Mechanism
 asystp.retransfer()
 logger("checked", "retransfer")
 

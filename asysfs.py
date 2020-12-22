@@ -13,52 +13,48 @@ import gzip
 
 """
 sync_files() -> new_files, deleted_files, mod_files:
-通过遍历sync文件夹来找到new_files, deleted_files, mod_files, 返回的是str
+Find new_files, deleted_files, mod_files by traversing the sync folder, the returned is str
 
 save_files_list(new_files: set, deleted_files: set, modified_files: set):
-通过sync_files()的返回值来持续化到db.json中
+Continue to db.json through the return value of sync_files()
 
 check_files():
-整个filesystem的入口
+Entrance of the entire filesystem
 """
 
 
 def sync_files() -> tuple:
     """return new files and deleted files
     """
-    # 需要同步的文件, SyncFile对象的 list
+    # Files to be synchronized, list of SyncFile objects
     sync_objs = db["sync_files"]
     # receive files
-    # receive 的 set 是之有文件名的 set
     recv_files = set(db["recv_files"])
     # current exist files
     cur_files = set()
     # past exist files
-    # 这个set是原来的所有, 也是原来所有的文件
     ori_files = set()
-    # modified files 修改的文件
+    # modified files
     mod_files = set()
-    # ignored files 忽略的文件
+    # ignored files
     ign_files = set(db["ignore"])
-    # 本地文件的 name
+    # local file name
     sync_files = set()
-
-    # 把对象的 name 用 str 的形式放进去
+    # Put the name of the object in the form of str
     for i in sync_objs:
         sync_files.add(i["name"])
-
-    # 原来的所有文件 = 接收到的所有文件 + 本地的所有文件
+    # All original files = all files received + all local files
     ori_files.update(recv_files)
     ori_files.update(sync_files)
 
-    # 得到现有的所有文件, 添加到 cur_files 中
+    # Get all existing files and add them to cur_files
     for root, dirs, files in os.walk(cfg["sync_dir"], followlinks=True):
         for cur_file in files:
             # add path at the start of filename
             cur_file = os.path.join(root, cur_file)
             cur_files.add(cur_file)
 
-    # 得到修改的文件的文件名
+    # Get the file name of the modified file
     for sync_obj in sync_objs:
         for cur_file in cur_files:
             try:
@@ -76,8 +72,8 @@ def sync_files() -> tuple:
 
 def __update_db_file(new_files: set, mod_files: set):
     """update db dict in memory
-    1. 从列表中移除删掉和更新的文件
-    2. 添加上更新的文件
+    1. Remove deleted and updated files from the list
+    2. Add the updated files
     """
     global cfg, db
     if not new_files and not mod_files:
@@ -90,7 +86,7 @@ def __update_db_file(new_files: set, mod_files: set):
     new_sync_files = []
 
     # if there has deleted files or modified files
-    # 把修改过的文件的记录先删掉, 再赋予他一个新的记录
+    # Delete the record of the modified file first, and then give him a new record
     if mod_files:
         # minus deleted files in dict
         sync_files = [x for x in sync_files if x["name"] not in mod_files]
@@ -117,10 +113,8 @@ def file_sys():
     total = cfg["db_update_persist_ratio"]
     while True:
         time.sleep(sync_interval)
-        # logger("update db", "file_sys")
         n += 1
         if n >= total:
-            # logger("persist db", "file_sys")
             db.presist_db()
             n = 0
 
@@ -130,7 +124,7 @@ def file_sys():
             logger(new_files, "new_files")
             for new_file in new_files:
                 sync_file = SyncFile(new_file)
-                # 文件大于 250M
+                # File larger than 250M
                 if sync_file.size >= 250*1024*1024:
                     new_file = asysio.compress(new_file)
 
@@ -180,20 +174,3 @@ class SyncFile():
 
     def __eq__(self, other):
         return self.name == other.name and self.time == other.time and self.size == other.size
-
-
-# if __name__ == "__main__":
-#     while True:
-#         logger(5)
-#         time.sleep(1)
-#         logger(4)
-#         time.sleep(1)
-#         logger(3)
-#         time.sleep(1)
-#         logger(2)
-#         time.sleep(1)
-#         logger(1)
-#         time.sleep(1)
-#         logger("start")
-#         new_files, mod_files = sync_files()
-#         logger(f"{new_files}, {mod_files}", "new_files, mod_files")

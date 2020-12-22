@@ -89,7 +89,6 @@ def pass_argument():
     if args.ip == None:
         logger("There are no ip input, use ip in config", "pass_arg")
     else:
-        # cfg["ips"] = [int(n) for n in args.ip.split(",")]
         cfg["ips"] = args.ip.split(",")
 
 
@@ -101,8 +100,7 @@ def load_logo() -> str:
 
 
 def init():
-    """
-    判读是否有share文件夹.
+    """Determine whether there is a share folder.
     """
     if not os.path.isdir("./share"):
         os.mkdir("./share")
@@ -116,7 +114,7 @@ def init():
                 },
                 "db_file": "db.json",
                 "logo_file": "aruixsync.logo",
-                "sync_interval": 1,
+                "sync_interval": 0.5,
                 "buffer_size": 10240,
                 "compress_level": 6,
                 "encryption": "False",
@@ -125,7 +123,7 @@ def init():
                 "file_block_size": 1024,
                 "sync_dir": "./share",
                 "key": "This is key",
-                "db_update_persist_ratio": 4
+                "db_update_persist_ratio": 3
             }
 
             f.write(cfg_new)
@@ -150,11 +148,6 @@ class Database:
         """
         with open(cfg["db_file"], "r") as db_file:
             self.db = json.load(db_file)
-
-    # def set_db(self, key, value):
-    #     db[key] = value
-    #     if "name" in db["sync_files"]:
-    #         None
 
     def presist_db(self):
         """persist the list of file names to db
@@ -181,7 +174,7 @@ def receive_signal(signal_number, frame):
     import asysfs
     global stop_times
 
-    # 在退出前保存 db.json
+    # Save db.json before exiting
     db.presist_db()
     logger(
         f"Saved to db", "receive_signal")
