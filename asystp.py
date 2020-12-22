@@ -31,11 +31,7 @@ send_header() -> None
 import socket
 import threading
 from asys import logger, cfg, db
-import struct
 import asysio
-import math
-import devTool
-import os
 import time
 import asysfs
 

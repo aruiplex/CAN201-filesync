@@ -6,10 +6,10 @@ from paramiko import AutoAddPolicy
 import threading
 
 # Settings
-py_files = ['aruixsync.logo', 'aserver.py', 'asys.py', 'asysfs.py', 'asysio.py', 'asystp.py',
-            'config.json', 'db.json', 'devTool.py', 'main.py']
+py_files = ['aserver.py', 'asys.py', 'asysfs.py', 'asysio.py', 'asystp.py',
+            'config.json', 'db.json', 'main.py']
 remote_python_interpreter = '/usr/local/bin/python3'
-remote_current_working_directory = '/home/tc/data/aruixsync/'
+remote_current_working_directory = '/home/tc/data/test/aruix'
 remote_IP = ["192.168.122.3", "192.168.122.5", "192.168.122.6"]
 remote_username = 'tc'
 remote_password = '123'
@@ -44,7 +44,6 @@ def run(remote_ip):
                     '\\', '/')
             print(f'Send {components[-1]} to {remote_ip}:{target_dir}')
             sftp.put(f, join(target_dir, components[-1]).replace('\\', '/'))
-
 
     except Exception as ex:
         print(ex)

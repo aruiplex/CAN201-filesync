@@ -6,4 +6,4 @@ dev
 .idea/
 db.json
 config.json
-
+.vscode/

@@ -1,16 +1,11 @@
-import uuid
 import socket
 import threading
 from asys import logger, cfg, db
 import struct
 import asysio
 import queue
-import math
 import os
-import json
-from queue import Empty
 import asystp
-import gzip
 
 syn = []
 

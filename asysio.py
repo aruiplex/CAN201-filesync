@@ -65,20 +65,11 @@ header fields:
 
 """
 import os
-from io import TextIOWrapper
-from typing import BinaryIO
-from devTool import time_consume
 from asys import logger, cfg, db
 import gzip
 import struct
-import asysio
-from asysfs import SyncFile
-import enum
-import math
-import hashlib
 from Crypto.Cipher import AES
-import base64
-
+import zlib
 
 """
 Methods = enum.Enum("SYN", "DEL", "ALI", "UPT", "SED", "REQ")
@@ -89,20 +80,19 @@ def compress(new_file: str) -> str:
     """ 
     open the original file and create a new compressed file
     """
-    with open(new_file, "rb") as f:
-        logger("start compress", "compress")
-        ori_data = f.read()
-
-    compress_data = gzip.compress(ori_data, cfg["compress_level"])
-    temp_filename = new_file+".temp"
+    temp_filename = new_file + ".temp"
     # write down protect, avoid file system track
     recv_files = set(db["recv_files"])
     recv_files.add(temp_filename)
     db["recv_files"] = recv_files
-
-    with open(temp_filename, "wb") as ft:
-        ft.write(compress_data)
-
+    with open(new_file, "rb") as infile:
+        with open(temp_filename, "wb") as zip_output:
+            compress_obj = zlib.compressobj(1)
+            data = infile.read(10240)
+            while data:
+                zip_output.write(compress_obj.compress(data))
+                data = infile.read(10240)
+            zip_output.write(compress_obj.flush())
     return temp_filename
 
 
@@ -112,16 +102,14 @@ def decompress(filename):
     recv_files = set(db["recv_files"])
     recv_files.add(real_name)
     db["recv_files"] = recv_files
-
-    ori_data = b""
-    with open(filename, "rb") as of:
-        ori_data = of.read()
-
-    with open(real_name, "wb") as f:
-        data = gzip.decompress(ori_data)
-        logger("decompressing", "decompress")
-        f.write(data)
-
+    with open(filename, "rb") as file_name:
+        with open(real_name, "wb") as endFile:
+            decompress_obj = zlib.decompressobj()
+            data = file_name.read(10240)
+            logger("decompressing", "decompress")
+            while data:
+                endFile.write(decompress_obj.decompress(data))
+                data = file_name.read(10240)
     os.remove(filename)
     logger(f"{filename} removed", "due_send")
 

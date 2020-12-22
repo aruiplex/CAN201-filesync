@@ -1,11 +1,5 @@
-import difflib
-import socket
-import threading
 from asys import logger, cfg, db
-import struct
-import json
 import asysio
-import math
 import os
 import time
 import asystp

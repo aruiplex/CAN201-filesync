@@ -1,15 +1,14 @@
 import aserver
-import threading
 from asys import *
 import asysfs
-import asysio
 import asystp
+import signal
 
 """
 This is the py file to start aruix sync
 """
 
-print(load_logo())
+print(logo)
 
 init()
 

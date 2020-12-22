@@ -1,5 +1,5 @@
 """
-aruix sync system function
+sync system function
 
 get_files() -> list
 1. list all files should be synced
@@ -27,16 +27,13 @@ Global variables:
 cfg:    asys(aruix sync transfer protocol system) global config
 db:     persist info to database
 """
-import signal
+
 import json
 import sys
 from datetime import datetime
 import argparse
 import threading
 import os
-import time
-import uuid
-from collections import defaultdict
 import hashlib
 
 
@@ -97,6 +94,18 @@ def load_logo() -> str:
     with open(logo_file, "r") as f:
         content = f.read()
     return content
+
+
+logo = """
+     _                     _                                       
+    / \     _ __   _   _  |_| __  __    ___   _   _   _ __     ___ 
+   / _ \   | '__| | | | | | | \ \/ /   / __| | | | | | '_ \   / __|
+  / ___ \  | |    | |_| | | |  >  <    \__ \ | |_| | | | | | | (__ 
+ /_/   \_\ |_|     \__,_| |_| /_/\_\   |___/  \__, | |_| |_|  \___|
+                                              |___/        
+
+                                              @Aruix
+"""
 
 
 def init():
