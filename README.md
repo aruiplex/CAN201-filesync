@@ -63,7 +63,7 @@ I designed the entire application layer transport protocol transport protocol, d
 
 This is the idea of application procedure.
 
-![未命名文件 (1)](image/%E6%9C%AA%E5%91%BD%E5%90%8D%E6%96%87%E4%BB%B6%20(1).png)
+![未命名文件 (1)](/report/image/%E6%9C%AA%E5%91%BD%E5%90%8D%E6%96%87%E4%BB%B6%20(1).png)
 
 #### 3.1.1 Package
 
@@ -185,9 +185,9 @@ Object-oriented programming, modular and multithreading are used in this coursew
 
 `tinycore linux` in `Virtual box` in `Windows 10`
 
-<img src="image/image-20201221115053718.png" alt="Image-1" style="zoom:50%;" />
+<img src="report/image/image-20201221115053718.png" alt="Image-1" style="zoom:50%;" />
 
-<img src="image/image-20201221115141404.png" alt="image-20201221115141404" style="zoom:33%;" />
+<img src="report/image/image-20201221115141404.png" alt="image-20201221115141404" style="zoom:33%;" />
 
 Linux system version
 
@@ -218,15 +218,15 @@ Linux version 5.4.3-tinycore (tc@box) (gcc version 9.2.0 (GCC)) #2020 SMP Tue De
 | 4     | Put a `file_original`, file into `./share` of `VM_2`. /share`, name it `test` | `VM_1`, `VM_3` received | `MD5`is correct |
 | 5     | Replace `file_original` with `file_modified`                 | `VM_1`, `VM_3` received | `MD5`is correct |
 
-<img src="image/%E4%BF%AE%E6%94%B9%E6%B2%A1%E9%97%AE%E9%A2%98.png" alt="修改没问题" style="zoom: 33%;" />
+<img src="report/image/%E4%BF%AE%E6%94%B9%E6%B2%A1%E9%97%AE%E9%A2%98.png" alt="修改没问题" style="zoom: 33%;" />
 
 <center>img-1:modify file transfer
 
-<img src="image/image-20201222164839862.png" alt="image-20201222164839862" style="zoom: 25%;" />
+<img src="report/image/image-20201222164839862.png" alt="image-20201222164839862" style="zoom: 25%;" />
 
 <center>img-2: large file transfer
 
-<img src="image/%E7%BB%AD%E4%BC%A0.png" alt="续传" style="zoom: 25%;" />
+<img src="report/image/%E7%BB%AD%E4%BC%A0.png" alt="续传" style="zoom: 25%;" />
 
 <center> img-3: resume from break
 
