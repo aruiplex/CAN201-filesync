@@ -1,3 +1,7 @@
+<!-- ![image](https://user-images.githubusercontent.com/40193711/142806801-2899883a-2d33-4893-b2ea-a42e2e75c673.png) -->
+
+_本repo能给各位学弟学妹提供作业思路我非常开心，但是请注意，不要抄代码也不要卖代码，因为此repo已提交给学校的查重库，也已经提交给TA与教授。认真完成这个作业对代码能力是有很大提升的。有问题可以联系我：aruix@teaforence.com 。_
+
 
 
 <h1> <center>Large Efficient Flexible and Trusty (LEFT) Files Sharing Report
